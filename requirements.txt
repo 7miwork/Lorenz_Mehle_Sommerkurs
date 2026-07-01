@@ -1,0 +1,3 @@
+# Für diese Stunde werden keine externen Bibliotheken benötigt.
+# Neue Abhängigkeiten werden hier automatisch ergänzt, sobald sie
+# in einer späteren Unterrichtsstunde eingeführt werden.

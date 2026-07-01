@@ -1,0 +1,31 @@
+# Python-Übersetzungsdateien
+__pycache__/
+*.pyc
+
+# Virtuelle Umgebungen
+.venv/
+venv/
+
+# PyInstaller-Ausgabe
+build/
+dist/
+*.spec
+
+# IDE-Konfigurationen
+.vscode/
+.idea/
+
+# Persönliche Profile (noch nicht versioniert)
+# profiles/*.profile
+
+# Exportierte Videos (noch nicht versioniert)
+# exports/*.mp4
+# exports/*.avi
+
+# Betriebssystem-Dateien
+.DS_Store
+Thumbs.db
+
+# Unterrichtsdateien (noch nicht versioniert)
+teacher/
+app.py
