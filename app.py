@@ -1,10 +1,14 @@
 # Record Studio - Hauptanwendung
 # Diese Datei startet das Tkinter-Fenster der Anwendung.
+# Inkludiert Benutzer-Profile Funktionalität
 
 # Importiert die Tkinter-Bibliothek für GUI-Fenster
 import tkinter as tk
 # Importiert das font-Modul für Schriftarten-Einstellungen
-from tkinter import font
+from tkinter import font, ttk
+
+# Importiert den ProfileManager für Benutzerprofile
+from profiles.profile_manager import ProfileManager
 
 
 class RecordStudioApp(tk.Tk):
@@ -19,6 +23,9 @@ class RecordStudioApp(tk.Tk):
         # Ruft den Konstruktor der Elternklasse (tk.Tk) auf
         super().__init__()
         
+        # Initialisiert den Profil-Manager
+        self.profile_manager = ProfileManager()
+        
         # Setzt den Titel des Fensters (erscheint in der Titelleiste)
         self.title("Record Studio")
         # Definiert die Startgröße des Fensters (Breite x Höhe in Pixeln)
@@ -32,6 +39,16 @@ class RecordStudioApp(tk.Tk):
         
         # Ruft die Methode auf, die die Benutzeroberfläche erstellt
         self._build_ui()
+        
+        # Zeigt die geladenen Profile beim Start an
+        self._show_loaded_profiles()
+    
+    def _show_loaded_profiles(self):
+        """Zeigt die geladenen Benutzerprofile in der Konsole an."""
+        users = self.profile_manager.get_all_users()
+        print(f"Geladene Benutzerprofile: {len(users)}")
+        for user in users:
+            print(f"  - {user.name} ({user.role})")
     
     def _center_window(self):
         """Berechnet die Position, damit das Fenster zentriert erscheint."""
