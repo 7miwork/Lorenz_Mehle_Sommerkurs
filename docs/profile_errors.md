@@ -1,6 +1,6 @@
 # Fehleranalyse: Benutzer-Profile Implementierung
 
-## Die 5 bewussten Fehler und deren Lösungen
+## Die 8 bewussten Fehler und deren Lösungen
 
 ### FEHLER 1: `preferences` könnte None sein (user.py, Zeile 28)
 
@@ -86,6 +86,38 @@ from datetime import datetime
 
 ---
 
+### FEHLER 6: Label-Farbe ist schwer lesbar (app.py, _build_ui)
+
+**Problem:** Das Profil-Auswahl Label hat die Farbe "gray" statt "black".
+
+```python
+# Falsch:
+fg="gray"  # Schwer lesbar
+
+# Richtig:
+fg="black"  # Oder weglassen (Standard ist schwarz)
+```
+
+**Auswirkung:** Der Text "Wähle dein Profil:" ist schwer lesbar.
+
+---
+
+### FEHLER 7: Dropdown-Breite zu schmal (app.py, _build_ui)
+
+**Problem:** Die Dropdown-Liste ist mit `width=30` zu schmal für lange Namen.
+
+```python
+# Falsch:
+width=30  # Zu schmal
+
+# Richtig:
+width=40  # Oder ohne width-Parameter
+```
+
+**Auswirkung:** Lange Namen werden abgeschnitten.
+
+---
+
 ## Zusammenfassung
 
 Diese Fehler sind typische Anfängerfehler in Python-Anwendungen:
@@ -95,5 +127,7 @@ Diese Fehler sind typische Anfängerfehler in Python-Anwendungen:
 3. **Datei-Existenz prüfen** - Nicht auf Datei-Existenz vor dem Öffnen prüfen
 4. **Import-Fehler** - Vergessen, benötigte Module zu importieren
 5. **Wiederholte Import-Fehler** - Gleiches wie Fehler 4, aber andersherum
+6. **UI-Farbe** - Farben die schwer lesbar sind
+7. **Layout** - Widget-Größen die nicht passen
 
 Die Fehler sind bewusst so platziert, dass das Grundprogramm trotzdem funktioniert, wenn die betroffenen Code-Pfade nicht ausgeführt werden.

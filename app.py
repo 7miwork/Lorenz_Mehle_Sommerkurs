@@ -83,7 +83,74 @@ class RecordStudioApp(tk.Tk):
         )
         
         # Platziert das Label in der Mitte des Fensters
-        welcome_label.place(relx=0.5, rely=0.5, anchor="center")
+        welcome_label.place(relx=0.5, rely=0.4, anchor="center")
+        
+        # ---------- BENUTZER-AUSWAHL ----------
+        self.current_user = None  # Aktuell ausgewählter Benutzer
+        
+        # FEHLER 6: Label mit falscher Farbe (grau statt schwarz)
+        profile_label = tk.Label(
+            self,
+            text="Wähle dein Profil:",  # FEHLER 7: "d" statt "dein" - Typo!
+            font=font.Font(family="Arial", size=14),
+            fg="gray"  # FEHLER: Sollte "black" sein
+        )
+        profile_label.place(relx=0.5, rely=0.5, anchor="center")
+        
+        # Dropdown für Benutzerauswahl
+        self.profile_var = tk.StringVar()
+        self.profile_combo = ttk.Combobox(
+            self,
+            textvariable=self.profile_var,
+            values=self._get_user_display_names(),
+            state="readonly",
+            width=30  # FEHLER 8: Breite zu schmal
+        )
+        self.profile_combo.place(relx=0.5, rely=0.55, anchor="center")
+        
+        # Login Button
+        self.login_btn = tk.Button(
+            self,
+            text="Profil auswählen",
+            command=self._select_profile,
+            font=font.Font(family="Arial", size=12, weight="bold")
+        )
+        self.login_btn.place(relx=0.5, rely=0.62, anchor="center")
+        
+        # Status Label
+        self.status_label = tk.Label(
+            self,
+            text="",
+            font=font.Font(family="Arial", size=10)
+        )
+        self.status_label.place(relx=0.5, rely=0.7, anchor="center")
+    
+    def _get_user_display_names(self) -> list:
+        """Gibt Liste der Anzeigenamen zurück."""
+        users = self.profile_manager.get_all_users()
+        return [f"{u.name} ({u.role})" for u in users]
+    
+    def _select_profile(self):
+        """Wird aufgerufen, wenn ein Profil ausgewählt wird."""
+        display_name = self.profile_var.get()
+        if not display_name:
+            self.status_label.config(text="Bitte wähle ein Profil aus!", fg="red")
+            return
+        
+        # Finde den User anhand des Anzeigenamens
+        users = self.profile_manager.get_all_users()
+        for user in users:
+            if f"{user.name} ({user.role})" == display_name:
+                self.current_user = user
+                user.update_last_login()
+                self.profile_manager._save_profiles()
+                self.status_label.config(
+                    text=f"Willkommen, {user.name}!", 
+                    fg="green"
+                )
+                # FEHLER 9: Button verschwindet nicht richtig - fg statt state
+                self.login_btn.config(state="disabled")
+                break
 
 
 def main():
