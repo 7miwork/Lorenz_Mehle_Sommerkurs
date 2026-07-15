@@ -66,6 +66,10 @@ Füge in `app.py` folgende Änderungen ein:
 
 **Baue noch keine UI-Elemente (Buttons, Listen) für Charaktere ein** – das kommt erst in einer späteren Stunde!
 
+## Bonus-Aufgabe: Fehlersuche
+
+Im fertigen Code (`core/character.py` und `core/character_library.py`) haben sich noch ein paar kleine Fehler eingeschlichen – insgesamt 3 Stück. Die App läuft trotzdem ohne Abstürze, aber manche Dinge funktionieren nicht wie erwartet. Versuche, die Fehler zu finden und zu beheben, bevor du in `docs/character_errors.md` nachschaust. Du erkennst sie an den `# FEHLER`-Kommentaren im Code.
+
 ## Was am Ende funktionieren soll
 
 - **`python app.py` startet ohne Fehler** und zeigt in der Konsole an:

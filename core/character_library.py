@@ -58,8 +58,9 @@ class CharacterLibrary:
                     
         except json.JSONDecodeError:
             # Datei enthält ungültiges JSON -> mit leerer Liste weitermachen
-            # und die Dateiüberschreiben
-            print(f"Warnung: Die Datei {self.data_file} enthält ungültiges JSON.")
+            # und die Datei überschreiben
+            # FEHLER 2: Typo in der Ausgabe – "Warnnung" statt "Warnung" (doppeltes 'n')
+            print(f"Warnnung: Die Datei {self.data_file} enthält ungültiges JSON.")
             print("Es wird eine neue, leere Datei erstellt.")
             self._save_characters()
     
@@ -135,8 +136,9 @@ class CharacterLibrary:
         Returns:
             Liste aller Character-Objekte (alphabetisch nach Name sortiert)
         """
-        # Sortiere die Charaktere alphabetisch nach Namen
-        return sorted(self.characters.values(), key=lambda c: c.name)
+        # FEHLER 3: Sortiert nach created_at statt alphabetisch nach Name.
+        # Der Kommentar sagt "alphabetisch", aber der Code sortiert nach Erstellzeit.
+        return sorted(self.characters.values(), key=lambda c: c.created_at)
     
     def update_character(self, character_id: str, **kwargs) -> bool:
         """Aktualisiert Charakter-Informationen.

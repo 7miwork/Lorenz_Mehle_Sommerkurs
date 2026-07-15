@@ -2,7 +2,7 @@
 
 In dieser Stunde baut der Schüler eine **Character Library** – eine Verwaltungskomponente für animierte Sprecher-Charaktere. Anders als in Stunde 2 (Debugging) schreibt der Schüler hier **selbstständig Code** nach Anleitung, analog zum Aufbau aus Stunde 1.
 
-Im Gegensatz zu den Benutzerprofilen (Stunde 2) enthält dieser Code **keine absichtlichen Fehler** – er dient als sauberer Referenzcode und als Vorbild für spätere Lektionen.
+Im Gegensatz zu den Benutzerprofilen (Stunde 2) enthält der Code, den der Schüler schreibt, **keine absichtlichen Fehler**. Allerdings sind in der fertigen Musterlösung (in `core/character.py` und `core/character_library.py`) **3 kleine Fehler** eingebaut, die der Schüler als Bonus-Aufgabe finden und beheben kann (siehe **`docs/character_errors.md`**). Bitte dem Schüler erst zeigen, nachdem er selbst versucht hat, die Fehler zu finden.
 
 ---
 

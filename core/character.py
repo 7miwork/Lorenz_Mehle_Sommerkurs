@@ -26,7 +26,7 @@ class Character:
         character_id: str,
         name: str,
         image_path: str = "",
-        description: str = "",
+        description: str = "TODO",  # FEHLER 1: Default-Wert sollte "" sein, nicht "TODO"
     ):
         """Initialisiert einen neuen Character.
         
@@ -39,6 +39,9 @@ class Character:
         self.character_id = character_id
         self.name = name
         self.image_path = image_path
+        # FEHLER 1 (Fortsetzung): description wird zugewiesen, aber der Default-Wert
+        # "TODO" ist unschön. Wer keinen description-Wert übergibt, bekommt "TODO"
+        # statt eines leeren Strings.
         self.description = description
         self.created_at = datetime.now().isoformat()
     
