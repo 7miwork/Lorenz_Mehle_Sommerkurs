@@ -51,6 +51,8 @@ Z:\Codes\Unterricht\Lorenz Mehle\Sommerkurs
 | Stunde | Titel | Was wurde gelernt |
 |--------|-------|-------------------|
 | 1 | Projekt erstellen | Tkinter-Grundgerüst, Projektstruktur, Standard-Guard, main()-Funktion |
+| 2 | Benutzerprofile | Code lesen, Debugging, Fehlersuche in bestehender Implementierung |
+| 3 | Character Library | Character-Klasse, CharacterLibrary-Manager, JSON-Persistenz |
 
 ## Installation
 
@@ -60,4 +62,4 @@ Z:\Codes\Unterricht\Lorenz Mehle\Sommerkurs
 
 ## Nächster Schritt
 
-In Stunde 2 wird ein Hauptmenü mit Navigation zwischen den späteren Programmbereichen implementiert.
+In Stunde 4 wird die Character Library um eine GUI (Liste, Buttons) erweitert, sodass Charaktere direkt in der Anwendung verwaltet werden können.
