@@ -10,6 +10,9 @@ from tkinter import font, ttk
 # Importiert den ProfileManager für Benutzerprofile
 from profiles.profile_manager import ProfileManager
 
+# Importiert die CharacterLibrary für Charakter-Verwaltung
+from core.character_library import CharacterLibrary
+
 
 class RecordStudioApp(tk.Tk):
     """Hauptklasse der Record Studio Anwendung.
@@ -25,6 +28,9 @@ class RecordStudioApp(tk.Tk):
         
         # Initialisiert den Profil-Manager
         self.profile_manager = ProfileManager()
+        
+        # Initialisiert die Charakter-Bibliothek
+        self.character_library = CharacterLibrary()
         
         # Setzt den Titel des Fensters (erscheint in der Titelleiste)
         self.title("Record Studio")
@@ -42,6 +48,9 @@ class RecordStudioApp(tk.Tk):
         
         # Zeigt die geladenen Profile beim Start an
         self._show_loaded_profiles()
+        
+        # Zeigt die geladenen Charaktere beim Start an
+        self._show_loaded_characters()
     
     def _show_loaded_profiles(self):
         """Zeigt die geladenen Benutzerprofile in der Konsole an."""
@@ -49,6 +58,13 @@ class RecordStudioApp(tk.Tk):
         print(f"Geladene Benutzerprofile: {len(users)}")
         for user in users:
             print(f"  - {user.name} ({user.role})")
+    
+    def _show_loaded_characters(self):
+        """Zeigt die geladenen Charaktere in der Konsole an."""
+        characters = self.character_library.get_all_characters()
+        print(f"Geladene Charaktere: {len(characters)}")
+        for character in characters:
+            print(f"  - {character.name} ({character.character_id})")
     
     def _center_window(self):
         """Berechnet die Position, damit das Fenster zentriert erscheint."""
