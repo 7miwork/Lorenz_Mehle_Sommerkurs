@@ -26,7 +26,7 @@ class Character:
         character_id: str,
         name: str,
         image_path: str = "",
-        description: str = "TODO",  # FEHLER 1: Default-Wert sollte "" sein, nicht "TODO"
+        description: str = "",  # FEHLER 1: Default-Wert sollte "" sein, nicht "TODO"
     ):
         """Initialisiert einen neuen Character.
         

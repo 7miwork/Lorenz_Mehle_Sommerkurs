@@ -5,8 +5,8 @@ Record Studio ist ein Werkzeug zum Erstellen von animierten Sprecher-Szenen mit 
 ## Funktionen
 
 - [x] Grundgerüst der Anwendung (Tkinter-Hauptfenster)
-- [ ] Benutzerprofile
-- [ ] Character Library
+- [x] Benutzerprofile
+- [x] Character Library
 - [ ] Character Editor
 - [ ] Scene Library
 - [ ] Scene Editor
