@@ -29,5 +29,5 @@ Thumbs.db
 # Unterrichtsdateien-Ausschluss (nur für bestimmte Dateitypen)
 # .md-Dateien in teacher/ und student/ werden versioniert
 # Hier können später z.B. Screenshots oder Arbeitsblätter ausgeschlossen werden
-# teacher/
+teacher/
 # student/

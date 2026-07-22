@@ -7,7 +7,7 @@ Record Studio ist ein Werkzeug zum Erstellen von animierten Sprecher-Szenen mit 
 - [x] Grundgerüst der Anwendung (Tkinter-Hauptfenster)
 - [x] Benutzerprofile
 - [x] Character Library
-- [ ] Character Editor
+- [x] Character Editor
 - [ ] Scene Library
 - [ ] Scene Editor
 - [ ] Audio Recorder
@@ -53,6 +53,7 @@ Z:\Codes\Unterricht\Lorenz Mehle\Sommerkurs
 | 1 | Projekt erstellen | Tkinter-Grundgerüst, Projektstruktur, Standard-Guard, main()-Funktion |
 | 2 | Benutzerprofile | Code lesen, Debugging, Fehlersuche in bestehender Implementierung |
 | 3 | Character Library | Character-Klasse, CharacterLibrary-Manager, JSON-Persistenz |
+| 4 | Character Editor | Treeview, Toplevel-Dialoge, CRUD-Operationen in der GUI |
 
 ## Installation
 
@@ -62,4 +63,4 @@ Z:\Codes\Unterricht\Lorenz Mehle\Sommerkurs
 
 ## Nächster Schritt
 
-In Stunde 4 wird die Character Library um eine GUI (Liste, Buttons) erweitert, sodass Charaktere direkt in der Anwendung verwaltet werden können.
+In Stunde 5 wird eine Scene Library analog zur Character Library aufgebaut – ein Datenmodell für Szenen und ein Manager zur Verwaltung von Szenen in einer JSON-Datei.

@@ -13,6 +13,9 @@ from profiles.profile_manager import ProfileManager
 # Importiert die CharacterLibrary für Charakter-Verwaltung
 from core.character_library import CharacterLibrary
 
+# Importiert den CharacterEditor für die grafische Charakter-Verwaltung
+from ui.character_editor import CharacterEditor
+
 
 class RecordStudioApp(tk.Tk):
     """Hauptklasse der Record Studio Anwendung.
@@ -169,6 +172,16 @@ class RecordStudioApp(tk.Tk):
             fg="red"  # Sollte "blue" oder Standard sein
         )
         self.edit_btn.place(relx=0.65, rely=0.78, anchor="center")
+        
+        # ---------- CHARAKTER-VERWALTUNG ----------
+        # Button: Öffnet den Character Editor (Liste, Erstellen, Bearbeiten, Löschen)
+        self.character_editor_btn = tk.Button(
+            self,
+            text="Charaktere verwalten",
+            command=self._open_character_editor,
+            font=font.Font(family="Arial", size=10)
+        )
+        self.character_editor_btn.place(relx=0.5, rely=0.85, anchor="center")
     
     def _get_user_display_names(self) -> list:
         """Gibt Liste der Anzeigenamen zurück."""
@@ -300,6 +313,17 @@ class RecordStudioApp(tk.Tk):
     def _refresh_profile_list(self):
         """Aktualisiert die Profil-Liste im Dropdown."""
         self.profile_combo['values'] = self._get_user_display_names()
+    
+    def _open_character_editor(self):
+        """Öffnet den Character Editor zum Verwalten von Charakteren.
+        
+        Erstellt eine Instanz des CharacterEditor-Fensters und übergibt
+        die CharacterLibrary-Instanz, damit der Editor CRUD-Operationen
+        (Erstellen, Lesen, Aktualisieren, Löschen) ausführen kann.
+        """
+        # CharacterEditor als Tochterfenster des Hauptfensters öffnen
+        # Die CharacterLibrary wird übergeben, damit der Editor auf die Daten zugreifen kann
+        CharacterEditor(self, self.character_library)
 
 
 def main():
