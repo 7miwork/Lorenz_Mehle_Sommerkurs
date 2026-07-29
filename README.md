@@ -8,8 +8,8 @@ Record Studio ist ein Werkzeug zum Erstellen von animierten Sprecher-Szenen mit 
 - [x] Benutzerprofile
 - [x] Character Library
 - [x] Character Editor
-- [ ] Scene Library
-- [ ] Scene Editor
+- [x] Scene Library
+- [x] Scene Editor
 - [ ] Audio Recorder
 - [ ] Mehrere Sprecher
 - [ ] Timeline
@@ -54,6 +54,7 @@ Z:\Codes\Unterricht\Lorenz Mehle\Sommerkurs
 | 2 | Benutzerprofile | Code lesen, Debugging, Fehlersuche in bestehender Implementierung |
 | 3 | Character Library | Character-Klasse, CharacterLibrary-Manager, JSON-Persistenz |
 | 4 | Character Editor | Treeview, Toplevel-Dialoge, CRUD-Operationen in der GUI |
+| 5 | Scene Library & Scene Editor | Scene-Klasse, SceneLibrary-Manager, SceneEditor-GUI, Hauptmenü nach Anmeldung |
 
 ## Installation
 
@@ -63,4 +64,4 @@ Z:\Codes\Unterricht\Lorenz Mehle\Sommerkurs
 
 ## Nächster Schritt
 
-In Stunde 5 wird eine Scene Library analog zur Character Library aufgebaut – ein Datenmodell für Szenen und ein Manager zur Verwaltung von Szenen in einer JSON-Datei.
+In Stunde 6 kommt der Audio Recorder hinzu – damit können Sprecher ihre Stimme aufnehmen und der Szene zuordnen.

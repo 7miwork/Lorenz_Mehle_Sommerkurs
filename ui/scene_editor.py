@@ -1,7 +1,7 @@
-# Character Editor für Record Studio
-# Grafische Oberfläche zur Verwaltung von Charakteren (CRUD-Operationen)
-# Zeigt eine Liste aller Charaktere an und ermöglicht das
-# Erstellen, Bearbeiten und Löschen von Charakteren in der CharacterLibrary.
+# Scene Editor für Record Studio
+# Grafische Oberfläche zur Verwaltung von Szenen (CRUD-Operationen)
+# Zeigt eine Liste aller Szenen an und ermöglicht das
+# Erstellen, Bearbeiten und Löschen von Szenen in der SceneLibrary.
 
 # Importiert die Tkinter-Bibliothek für GUI-Fenster
 import tkinter as tk
@@ -9,8 +9,8 @@ import tkinter as tk
 # und filedialog für Dateiauswahl-Dialoge
 from tkinter import ttk, messagebox, filedialog
 
-# Importiert die CharacterLibrary für CRUD-Operationen auf Charakteren
-from core.character_library import CharacterLibrary
+# Importiert die SceneLibrary für CRUD-Operationen auf Szenen
+from core.scene_library import SceneLibrary
 
 # Importiert shutil zum Kopieren von Bilddateien in das assets/-Verzeichnis
 import shutil
@@ -19,40 +19,40 @@ import shutil
 import os
 
 
-class CharacterEditor(tk.Toplevel):
-    """Grafischer Editor für die Character Library.
+class SceneEditor(tk.Toplevel):
+    """Grafischer Editor für die Scene Library.
 
     Erbt von tk.Toplevel, um ein eigenständiges Fenster zu erzeugen,
     das als Kind des Hauptfensters (RecordStudioApp) erscheint.
 
-    Die Klasse zeigt alle Charaktere in einer ttk.Treeview-Liste an
+    Die Klasse zeigt alle Szenen in einer ttk.Treeview-Liste an
     und bietet drei Aktionen: Neu erstellen, Bearbeiten und Löschen.
     Jede Aktion öffnet bei Bedarf einen Toplevel-Dialog mit Eingabefeldern.
 
     Attribute:
-        character_library: Die CharacterLibrary-Instanz, die die Daten verwaltet
-        selected_character_id: ID des aktuell in der Liste ausgewählten Charakters
+        scene_library: Die SceneLibrary-Instanz, die die Daten verwaltet
+        selected_scene_id: ID der aktuell in der Liste ausgewählten Szene
         tree: Die ttk.Treeview-Widget mit den Spalten Name und Beschreibung
     """
 
-    def __init__(self, parent, character_library: CharacterLibrary):
-        """Initialisiert den Character Editor.
+    def __init__(self, parent, scene_library: SceneLibrary):
+        """Initialisiert den Scene Editor.
 
         Args:
             parent: Elternfenster (RecordStudioApp-Instanz)
-            character_library: CharacterLibrary-Instanz für CRUD-Operationen
+            scene_library: SceneLibrary-Instanz für CRUD-Operationen
         """
         # Ruft den Konstruktor der Elternklasse (tk.Toplevel) auf
         super().__init__(parent)
 
-        # Referenz auf die CharacterLibrary speichern, um später CRUD-Operationen auszuführen
-        self.character_library = character_library
+        # Referenz auf die SceneLibrary speichern, um später CRUD-Operationen auszuführen
+        self.scene_library = scene_library
 
-        # ID des aktuell ausgewählten Charakters (None, wenn nichts ausgewählt)
-        self.selected_character_id = None
+        # ID der aktuell ausgewählten Szene (None, wenn nichts ausgewählt)
+        self.selected_scene_id = None
 
         # Fenster-Titel festlegen (erscheint in der Titelleiste)
-        self.title("Charaktere verwalten")
+        self.title("Szenen verwalten")
         # Fenstergröße festlegen: 600 Pixel breit, 400 Pixel hoch
         self.geometry("600x400")
         # Das Fenster als Tochter des Hauptfensters kennzeichnen (transient)
@@ -62,18 +62,18 @@ class CharacterEditor(tk.Toplevel):
         # Die Benutzeroberfläche erstellen (Treeview, Buttons, Schließen-Button)
         self._build_ui()
 
-        # Die Liste der Charaktere beim Start initial befüllen
+        # Die Liste der Szenen beim Start initial befüllen
         self._refresh_list()
 
     def _build_ui(self):
         """Erstellt alle sichtbaren Elemente des Editor-Fensters.
 
         Aufbau:
-        - Oben: ttk.Treeview mit zwei Spalten (Name, Beschreibung)
-        - Darunter: Drei Buttons (Neuer Charakter, Bearbeiten, Löschen)
+        - Oben: ttk.Treeview mit zwei benannten Spalten (Name, Beschreibung)
+        - Darunter: Drei Buttons (Neue Szene, Bearbeiten, Löschen)
         - Unten: Schließen-Button
         """
-        # ---------- TREVIEW (Charakterliste) ----------
+        # ---------- TREVIEW (Szenenliste) ----------
         # ttk.Treeview mit zwei benannten Spalten erstellen
         # show="headings" versteckt die Standard-Baum-Spalte ganz links
         self.tree = ttk.Treeview(
@@ -102,10 +102,10 @@ class CharacterEditor(tk.Toplevel):
         button_frame = tk.Frame(self)
         button_frame.pack(pady=10)
 
-        # Button: Neuer Charakter – öffnet einen Dialog zur Eingabe von Name, Bildpfad, Beschreibung
+        # Button: Neue Szene – öffnet einen Dialog zur Eingabe von Name, Hintergrundbild, Beschreibung
         self.new_btn = tk.Button(
             button_frame,
-            text="Neuer Charakter",
+            text="Neue Szene",
             command=self._open_create_dialog,
             font=tk.font.Font(family="Arial", size=10)
         )
@@ -127,7 +127,7 @@ class CharacterEditor(tk.Toplevel):
         self.delete_btn = tk.Button(
             button_frame,
             text="Löschen",
-            command=self._delete_character,
+            command=self._delete_scene,
             state="disabled",
             font=tk.font.Font(family="Arial", size=10)
         )
@@ -144,7 +144,7 @@ class CharacterEditor(tk.Toplevel):
         self.close_btn.pack(pady=10)
 
     def _refresh_list(self):
-        """Lädt alle Charaktere neu und füllt die Treeview-Liste auf.
+        """Lädt alle Szenen neu und füllt die Treeview-Liste auf.
 
         Die Methode wird nach jeder Änderung (Neu/Bearbeiten/Löschen)
         aufgerufen, um sicherzustellen, dass die Anzeige aktuell ist.
@@ -153,18 +153,18 @@ class CharacterEditor(tk.Toplevel):
         for item in self.tree.get_children():
             self.tree.delete(item)
 
-        # Alle Charaktere laden (get_all_characters() liefert sie bereits alphabetisch sortiert)
-        characters = self.character_library.get_all_characters()
+        # Alle Szenen laden (get_all_scenes() liefert sie bereits alphabetisch sortiert)
+        scenes = self.scene_library.get_all_scenes()
 
-        # Jeden Charakter als neue Zeile in die Treeview einfügen
-        # Die character_id wird als iid (item id) verwendet, damit wir später
-        # den zugehörigen Charakter für Bearbeiten/Löschen wiederfinden
-        for character in characters:
+        # Jede Szene als neue Zeile in die Treeview einfügen
+        # Die scene_id wird als iid (item id) verwendet, damit wir später
+        # die zugehörige Szene für Bearbeiten/Löschen wiederfinden
+        for scene in scenes:
             self.tree.insert(
                 "",
                 "end",
-                iid=character.character_id,
-                values=(character.name, character.description)
+                iid=scene.scene_id,
+                values=(scene.name, scene.description)
             )
 
     def _on_tree_select(self, event):
@@ -180,56 +180,56 @@ class CharacterEditor(tk.Toplevel):
         selected = self.tree.selection()
 
         if selected:
-            # Eine Zeile ist ausgewählt: die character_id speichern und Buttons aktivieren
-            self.selected_character_id = selected[0]
+            # Eine Zeile ist ausgewählt: die scene_id speichern und Buttons aktivieren
+            self.selected_scene_id = selected[0]
             self.edit_btn.config(state="normal")
             self.delete_btn.config(state="normal")
         else:
             # Keine Zeile mehr ausgewählt: ID zurücksetzen und Buttons deaktivieren
-            self.selected_character_id = None
+            self.selected_scene_id = None
             self.edit_btn.config(state="disabled")
             self.delete_btn.config(state="disabled")
 
     def _open_create_dialog(self):
-        """Öffnet einen Dialog zum Erstellen eines neuen Charakters.
+        """Öffnet einen Dialog zum Erstellen einer neuen Szene.
 
-        Ruft die interne Methode _open_character_dialog auf, ohne eine
-        character_id zu übergeben (was den Modus "Neu" auslöst).
+        Ruft die interne Methode _open_scene_dialog auf, ohne eine
+        scene_id zu übergeben (was den Modus "Neu" auslöst).
         """
-        # character_id=None signalisiert: Neuer Charakter (nicht Bearbeiten)
-        self._open_character_dialog(character_id=None)
+        # scene_id=None signalisiert: Neue Szene (nicht Bearbeiten)
+        self._open_scene_dialog(scene_id=None)
 
     def _open_edit_dialog(self):
-        """Öffnet einen Dialog zum Bearbeiten des ausgewählten Charakters.
+        """Öffnet einen Dialog zum Bearbeiten der ausgewählten Szene.
 
-        Die Eingabefelder werden mit den aktuellen Werten des Charakters
-        vorbelegt. Beim Speichern wird update_character() aufgerufen.
+        Die Eingabefelder werden mit den aktuellen Werten der Szene
+        vorbelegt. Beim Speichern wird update_scene() aufgerufen.
         """
         # Wenn nichts ausgewählt ist, nichts tun (Sicherheitscheck)
-        if self.selected_character_id is None:
+        if self.selected_scene_id is None:
             return
 
-        # character_id setzen: Der Dialog weiß, dass er bearbeiten (nicht erstellen) soll
-        self._open_character_dialog(character_id=self.selected_character_id)
+        # scene_id setzen: Der Dialog weiß, dass er bearbeiten (nicht erstellen) soll
+        self._open_scene_dialog(scene_id=self.selected_scene_id)
 
-    def _open_character_dialog(self, character_id=None):
+    def _open_scene_dialog(self, scene_id=None):
         """Öffnet einen gemeinsamen Dialog für Neu- und Bearbeiten-Modus.
 
-        Der Dialog enthält Eingabefelder für Name, Bildpfad und Beschreibung.
-        Im Bearbeiten-Modus (character_id ist gesetzt) werden die Felder
+        Der Dialog enthält Eingabefelder für Name, Hintergrundbild und Beschreibung.
+        Im Bearbeiten-Modus (scene_id ist gesetzt) werden die Felder
         mit den aktuellen Werten vorbelegt.
 
         Args:
-            character_id: None für einen neuen Charakter, sonst die ID
-                          des zu bearbeitenden Charakters
+            scene_id: None für eine neue Szene, sonst die ID
+                      der zu bearbeitenden Szene
         """
         # Bestimme, ob es um Erstellen oder Bearbeiten geht
         # (wird für den Fenster-Titel verwendet)
-        is_edit_mode = character_id is not None
+        is_edit_mode = scene_id is not None
 
         # ---------- DIALOG-FENSTER ERSTELLEN ----------
         dialog = tk.Toplevel(self)
-        dialog.title("Charakter bearbeiten" if is_edit_mode else "Neuer Charakter")
+        dialog.title("Szene bearbeiten" if is_edit_mode else "Neue Szene")
         dialog.geometry("400x300")
         # Der Dialog ist ein Tochterfenster des Editors (transient)
         dialog.transient(self)
@@ -240,31 +240,31 @@ class CharacterEditor(tk.Toplevel):
         name_var = tk.StringVar()
         tk.Entry(dialog, textvariable=name_var, width=40).pack()
 
-        # Bildpfad-Eingabe (schreibgeschützt, wird nur über "Durchsuchen..." gesetzt)
-        tk.Label(dialog, text="Bildpfad:").pack(pady=(10, 5))
-        image_var = tk.StringVar()
-        
+        # Hintergrundbild-Eingabe (schreibgeschützt, wird nur über "Durchsuchen..." gesetzt)
+        tk.Label(dialog, text="Hintergrundbild:").pack(pady=(10, 5))
+        background_var = tk.StringVar()
+
         # Ein Frame für die horizontale Anordnung von Entry und Button
-        image_frame = tk.Frame(dialog)
-        image_frame.pack()
-        
+        background_frame = tk.Frame(dialog)
+        background_frame.pack()
+
         # Das Entry-Feld ist schreibgeschützt (state="readonly"), damit der Benutzer
         # den Pfad nicht versehentlich von Hand falsch eingeben kann.
         # Der Pfad wird ausschließlich über den "Durchsuchen..."-Button gesetzt.
-        image_entry = tk.Entry(
-            image_frame,
-            textvariable=image_var,
+        background_entry = tk.Entry(
+            background_frame,
+            textvariable=background_var,
             width=35,
             state="readonly"
         )
-        image_entry.pack(side="left", padx=(0, 5))
-        
+        background_entry.pack(side="left", padx=(0, 5))
+
         # "Durchsuchen..."-Button öffnet den Windows-Dateidialog zur Bildauswahl
-        # und kopiert die ausgewählte Datei automatisch in assets/characters/
+        # und kopiert die ausgewählte Datei automatisch in assets/scenes/
         tk.Button(
-            image_frame,
+            background_frame,
             text="Durchsuchen...",
-            command=lambda: self._select_image_file(image_var)
+            command=lambda: self._select_background_file(background_var)
         ).pack(side="left")
 
         # Beschreibung-Eingabe
@@ -274,20 +274,20 @@ class CharacterEditor(tk.Toplevel):
 
         # Wenn Bearbeiten-Modus: Die Eingabefelder mit den aktuellen Werten vorbelegen
         if is_edit_mode:
-            character = self.character_library.get_character(character_id)
-            if character:
-                name_var.set(character.name)
-                image_var.set(character.image_path)
-                desc_var.set(character.description)
+            scene = self.scene_library.get_scene(scene_id)
+            if scene:
+                name_var.set(scene.name)
+                background_var.set(scene.background_path)
+                desc_var.set(scene.description)
 
         # ---------- SPEICHERN-BUTTON ----------
         # Die save()-Funktion wird als lokale Funktion definiert,
-        # weil sie Zugriff auf die Eingabevariablen und character_id braucht
+        # weil sie Zugriff auf die Eingabevariablen und scene_id braucht
         def save():
-            """Liest die Eingaben aus, speichert den Charakter und schließt den Dialog."""
+            """Liest die Eingaben aus, speichert die Szene und schließt den Dialog."""
             # Eingaben auslesen und trimmen (entfernt führende/trailing Leerzeichen)
             name = name_var.get().strip()
-            image_path = image_var.get().strip()
+            background_path = background_var.get().strip()
             description = desc_var.get().strip()
 
             # Einfache Validierung: Name darf nicht leer sein
@@ -296,18 +296,18 @@ class CharacterEditor(tk.Toplevel):
                 return
 
             if is_edit_mode:
-                # Bearbeiten: update_character mit der character_id aufrufen
-                self.character_library.update_character(
-                    character_id,
+                # Bearbeiten: update_scene mit der scene_id aufrufen
+                self.scene_library.update_scene(
+                    scene_id,
                     name=name,
-                    image_path=image_path,
+                    background_path=background_path,
                     description=description
                 )
             else:
-                # Neu erstellen: create_character aufrufen (ID wird automatisch generiert)
-                self.character_library.create_character(
+                # Neu erstellen: create_scene aufrufen (ID wird automatisch generiert)
+                self.scene_library.create_scene(
                     name=name,
-                    image_path=image_path,
+                    background_path=background_path,
                     description=description
                 )
 
@@ -320,11 +320,11 @@ class CharacterEditor(tk.Toplevel):
         # Speichern-Button mit der save()-Funktion verknüpfen
         tk.Button(dialog, text="Speichern", command=save).pack(pady=20)
 
-    def _select_image_file(self, image_var: tk.StringVar):
-        """Öffnet einen Dateidialog zur Auswahl eines Charakter-Bildes.
+    def _select_background_file(self, background_var: tk.StringVar):
+        """Öffnet einen Dateidialog zur Auswahl eines Hintergrundbildes.
 
         Der Benutzer wählt eine Bilddatei aus (*.png, *.jpg, *.jpeg, *.gif, *.bmp).
-        Die Datei wird automatisch in den Ordner 'assets/characters/' kopiert,
+        Die Datei wird automatisch in den Ordner 'assets/scenes/' kopiert,
         damit sie im Projektverzeichnis liegt und nicht versehentlich gelöscht wird.
 
         Falls im Zielordner bereits eine Datei mit demselben Namen existiert
@@ -332,13 +332,13 @@ class CharacterEditor(tk.Toplevel):
         durch Anhängen eines Zeitstempels erzeugt.
 
         Args:
-            image_var: Die StringVar-Variable des Bildpfad-Eingabefelds.
-                       Nach erfolgreicher Auswahl wird sie auf den relativen
-                       Zielpfad gesetzt (z.B. "assets/characters/held.png").
+            background_var: Die StringVar-Variable des Hintergrundbild-Eingabefelds.
+                           Nach erfolgreicher Auswahl wird sie auf den relativen
+                           Zielpfad gesetzt (z.B. "assets/scenes/wohnzimmer.png").
         """
         # Windows-Dateidialog öffnen, nur Bildformate zulassen
         file_path = filedialog.askopenfilename(
-            title="Charakterbild auswählen",
+            title="Hintergrundbild auswählen",
             filetypes=[
                 ("Bilddateien", "*.png *.jpg *.jpeg *.gif *.bmp"),
                 ("Alle Dateien", "*.*")
@@ -349,26 +349,25 @@ class CharacterEditor(tk.Toplevel):
         if not file_path:
             return
 
-        # Zielverzeichnis: assets/characters/ (relativ zum Arbeitsverzeichnis)
-        target_dir = "assets/characters"
+        # Zielverzeichnis: assets/scenes/ (relativ zum Arbeitsverzeichnis)
+        target_dir = "assets/scenes"
 
         # Prüfen, ob das Zielverzeichnis existiert, ggf. erstellen
         os.makedirs(target_dir, exist_ok=True)
 
-        # Nur den Dateinamen aus dem Quellpfad extrahieren (z.B. "held.png")
+        # Nur den Dateinamen aus dem Quellpfad extrahieren (z.B. "wohnzimmer.png")
         filename = os.path.basename(file_path)
 
-        # Zielpfad zusammensetzen: "assets/characters/held.png"
+        # Zielpfad zusammensetzen: "assets/scenes/wohnzimmer.png"
         target_path = os.path.join(target_dir, filename)
 
         # Prüfen, ob am Ziel bereits eine Datei mit diesem Namen existiert
         if os.path.exists(target_path):
             # Prüfen, ob es dieselbe Datei ist (gleicher Pfad)
-            # os.path.samefile funktioniert auf Windows, vergleicht aber nur Pfade
             # Ein einfacher String-Vergleich der absoluten Pfade ist ausreichend
             if os.path.abspath(file_path) != os.path.abspath(target_path):
                 # Es ist eine andere Datei mit demselben Namen -> Zeitstempel anhängen
-                # z.B. "held_1721234567.png"
+                # z.B. "wohnzimmer_1721234567.png"
                 import time
                 timestamp = int(time.time())
                 name_without_ext, ext = os.path.splitext(filename)
@@ -379,37 +378,37 @@ class CharacterEditor(tk.Toplevel):
         # shutil.copy2() erhält die Datei-Metadaten (Erstellungsdatum etc.)
         shutil.copy2(file_path, target_path)
 
-        # Den relativen Zielpfad in der image_var speichern,
-        # damit er im Eingabefeld angezeigt und später in character_data.json gespeichert wird
-        image_var.set(target_path)
+        # Den relativen Zielpfad in der background_var speichern,
+        # damit er im Eingabefeld angezeigt und später in scene_data.json gespeichert wird
+        background_var.set(target_path)
 
-    def _delete_character(self):
-        """Löscht den ausgewählten Charakter nach einer Bestätigung.
+    def _delete_scene(self):
+        """Löscht die ausgewählte Szene nach einer Bestätigung.
 
         Zeigt zuerst einen Bestätigungsdialog (messagebox.askyesno) an.
-        Erst wenn der Benutzer mit "Ja" bestätigt, wird der Charakter
-        aus der CharacterLibrary gelöscht und die Liste aktualisiert.
+        Erst wenn der Benutzer mit "Ja" bestätigt, wird die Szene
+        aus der SceneLibrary gelöscht und die Liste aktualisiert.
         """
         # Sicherheitscheck: Wenn nichts ausgewählt ist, nichts tun
-        if self.selected_character_id is None:
+        if self.selected_scene_id is None:
             return
 
-        # Bestätigungsdialog anzeigen: "Charakter wirklich löschen?"
+        # Bestätigungsdialog anzeigen: "Szene wirklich löschen?"
         # askyesno gibt True zurück, wenn der Benutzer auf "Ja" klickt
         if not messagebox.askyesno(
             "Bestätigung",
-            "Charakter wirklich löschen?"
+            "Szene wirklich löschen?"
         ):
             # Benutzer hat "Nein" geklickt: Nichts tun
             return
 
-        # Charakter in der Bibliothek löschen
-        self.character_library.delete_character(self.selected_character_id)
+        # Szene in der Bibliothek löschen
+        self.scene_library.delete_scene(self.selected_scene_id)
 
-        # Liste neu laden, damit der gelöschte Charakter verschwindet
+        # Liste neu laden, damit die gelöschte Szene verschwindet
         self._refresh_list()
 
         # Auswahl zurücksetzen und Buttons deaktivieren
-        self.selected_character_id = None
+        self.selected_scene_id = None
         self.edit_btn.config(state="disabled")
         self.delete_btn.config(state="disabled")

@@ -13,8 +13,17 @@ from profiles.profile_manager import ProfileManager
 # Importiert die CharacterLibrary für Charakter-Verwaltung
 from core.character_library import CharacterLibrary
 
+# Importiert die SceneLibrary für Szenen-Verwaltung
+from core.scene_library import SceneLibrary
+
 # Importiert den CharacterEditor für die grafische Charakter-Verwaltung
 from ui.character_editor import CharacterEditor
+
+# Importiert den SceneEditor für die grafische Szenen-Verwaltung
+from ui.scene_editor import SceneEditor
+
+# Importiert das Hauptmenü, das nach der Anmeldung erscheint
+from ui.main_menu import MainMenu
 
 
 class RecordStudioApp(tk.Tk):
@@ -35,6 +44,9 @@ class RecordStudioApp(tk.Tk):
         # Initialisiert die Charakter-Bibliothek
         self.character_library = CharacterLibrary()
         
+        # Initialisiert die Szenen-Bibliothek
+        self.scene_library = SceneLibrary()
+        
         # Setzt den Titel des Fensters (erscheint in der Titelleiste)
         self.title("Record Studio")
         # Definiert die Startgröße des Fensters (Breite x Höhe in Pixeln)
@@ -54,6 +66,9 @@ class RecordStudioApp(tk.Tk):
         
         # Zeigt die geladenen Charaktere beim Start an
         self._show_loaded_characters()
+        
+        # Zeigt die geladenen Szenen beim Start an
+        self._show_loaded_scenes()
     
     def _show_loaded_profiles(self):
         """Zeigt die geladenen Benutzerprofile in der Konsole an."""
@@ -68,6 +83,13 @@ class RecordStudioApp(tk.Tk):
         print(f"Geladene Charaktere: {len(characters)}")
         for character in characters:
             print(f"  - {character.name} ({character.character_id})")
+    
+    def _show_loaded_scenes(self):
+        """Zeigt die geladenen Szenen in der Konsole an."""
+        scenes = self.scene_library.get_all_scenes()
+        print(f"Geladene Szenen: {len(scenes)}")
+        for scene in scenes:
+            print(f"  - {scene.name} ({scene.scene_id})")
     
     def _center_window(self):
         """Berechnet die Position, damit das Fenster zentriert erscheint."""
@@ -213,6 +235,9 @@ class RecordStudioApp(tk.Tk):
                     fg="green"
                 )
                 self.login_btn.config(state="disabled")
+                
+                # Hauptmenü öffnen, das alle Bereiche zugänglich macht
+                self._open_main_menu()
                 break
     
     def _create_profile_dialog(self):
@@ -324,6 +349,93 @@ class RecordStudioApp(tk.Tk):
         # CharacterEditor als Tochterfenster des Hauptfensters öffnen
         # Die CharacterLibrary wird übergeben, damit der Editor auf die Daten zugreifen kann
         CharacterEditor(self, self.character_library)
+    
+    def _open_scene_editor(self):
+        """Öffnet den Scene Editor zum Verwalten von Szenen.
+        
+        Erstellt eine Instanz des SceneEditor-Fensters und übergibt
+        die SceneLibrary-Instanz, damit der Editor CRUD-Operationen
+        (Erstellen, Lesen, Aktualisieren, Löschen) ausführen kann.
+        """
+        # SceneEditor als Tochterfenster des Hauptfensters öffnen
+        # Die SceneLibrary wird übergeben, damit der Editor auf die Daten zugreifen kann
+        SceneEditor(self, self.scene_library)
+    
+    def _open_main_menu(self):
+        """Öffnet das Hauptmenü nach der Benutzeranmeldung.
+        
+        Das Hauptmenü bietet Zugang zu allen Bereichen der Anwendung:
+            1. Benutzerprofile
+            2. Character Library
+            3. Character Editor
+            4. Scene Library
+            5. Scene Editor
+        
+        Jedem Button wird eine Callback-Funktion zugeordnet, die den
+        zugehörigen Editor oder Dialog öffnet.
+        """
+        # Callbacks für die einzelnen Bereiche definieren
+        callbacks = {
+            "profiles": self._open_profile_manager,
+            "char_library": self._open_character_library_info,
+            "char_editor": self._open_character_editor,
+            "scene_library": self._open_scene_library_info,
+            "scene_editor": self._open_scene_editor,
+        }
+        
+        # Hauptmenü als Tochterfenster öffnen
+        MainMenu(self, callbacks)
+    
+    def _open_profile_manager(self):
+        """Öffnet die Profil-Verwaltung.
+        
+        Da die Profil-Verwaltung bereits im Hauptfenster integriert ist
+        (Dropdown, Erstellen, Bearbeiten, Löschen), wird hier ein
+        Informationsdialog angezeigt, der den Benutzer darauf hinweist.
+        """
+        from tkinter import messagebox
+        messagebox.showinfo(
+            "Benutzerprofile",
+            "Die Profil-Verwaltung befindet sich im Hauptfenster.\n\n"
+            "Dort kannst du Profile auswählen, erstellen, bearbeiten\n"
+            "und löschen."
+        )
+    
+    def _open_character_library_info(self):
+        """Öffnet einen Informationsdialog zur Character Library.
+        
+        Zeigt die Anzahl der gespeicherten Charaktere und eine
+        Kurzbeschreibung der Character Library an.
+        """
+        from tkinter import messagebox
+        count = self.character_library.count_characters()
+        messagebox.showinfo(
+            "Character Library",
+            f"Character Library\n\n"
+            f"Gespeicherte Charaktere: {count}\n\n"
+            f"Die Character Library verwaltet alle Charaktere\n"
+            f"und speichert sie in einer JSON-Datei.\n\n"
+            f"Über den 'Character Editor' kannst du Charaktere\n"
+            f"erstellen, bearbeiten und löschen."
+        )
+    
+    def _open_scene_library_info(self):
+        """Öffnet einen Informationsdialog zur Scene Library.
+        
+        Zeigt die Anzahl der gespeicherten Szenen und eine
+        Kurzbeschreibung der Scene Library an.
+        """
+        from tkinter import messagebox
+        count = self.scene_library.count_scenes()
+        messagebox.showinfo(
+            "Scene Library",
+            f"Scene Library\n\n"
+            f"Gespeicherte Szenen: {count}\n\n"
+            f"Die Scene Library verwaltet alle Szenen\n"
+            f"und speichert sie in einer JSON-Datei.\n\n"
+            f"Über den 'Scene Editor' kannst du Szenen\n"
+            f"erstellen, bearbeiten und löschen."
+        )
 
 
 def main():

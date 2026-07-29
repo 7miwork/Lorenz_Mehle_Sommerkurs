@@ -1,4 +1,19 @@
 {
-    "characters": [],
-    "last_updated": "2026-07-15T23:37:25.075984"
+    "characters": [
+        {
+            "character_id": "hero_1784736722",
+            "name": "Hero",
+            "image_path": "",
+            "description": "unser held",
+            "created_at": "2026-07-23T00:12:02.668597"
+        },
+        {
+            "character_id": "insel_1_1784738404",
+            "name": "insel 1",
+            "image_path": "assets/characters\\logo.jpg",
+            "description": "insel",
+            "created_at": "2026-07-23T00:40:04.772957"
+        }
+    ],
+    "last_updated": "2026-07-23T00:40:04.772957"
 }

@@ -174,3 +174,13 @@ Das ist alles! Der Character Editor öffnet sich als Tochterfenster, wenn du auf
 - **Schließen**: Der "Schließen"-Button schließt das Editor-Fenster
 - **JSON-Datei**: Nach jeder Änderung ist `assets/characters/character_data.json` aktualisiert
 - **Keine absichtlichen Fehler** im Code – alles funktioniert sauber!
+
+## Bonus: Bildauswahl mit "Durchsuchen..."
+
+In der ersten Version des Character Editors musste der Bildpfad noch von Hand eingetippt werden – das war umständlich und fehleranfällig (Tippfehler, absolute Pfade, die auf anderen Rechnern nicht funktionieren).
+
+Jetzt gibt es einen **"Durchsuchen..."-Button** neben dem Bildpfad-Feld. Wenn du darauf klickst, öffnet sich der Windows-Dateidialog, in dem du eine Bilddatei auswählen kannst (PNG, JPG, GIF, BMP). Das ausgewählte Bild wird dann **automatisch** in den Ordner `assets/characters/` kopiert, damit es immer im Projektverzeichnis liegt.
+
+**Wichtig:** Das Bildpfad-Feld ist jetzt schreibgeschützt – du kannst den Pfad nicht mehr von Hand eintippen. Das ist Absicht! So werden Tippfehler und ungültige Pfade vermieden. Der Pfad wird nur über den "Durchsuchen..."-Button gesetzt.
+
+**Tipp:** Wenn du ein Bild auswählst, das bereits einen Namen hat, den es schon in `assets/characters/` gibt (z.B. zwei verschiedene `portrait.png`-Dateien), wird automatisch ein Zeitstempel angehängt (z.B. `portrait_1721234567.png`), damit sich die Bilder nicht gegenseitig überschreiben.
