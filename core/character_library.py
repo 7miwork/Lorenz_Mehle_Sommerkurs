@@ -83,20 +83,25 @@ class CharacterLibrary:
     def create_character(
         self,
         name: str,
+        description: str = "",
+        views: Optional[Dict[str, str]] = None,
+        poses: Optional[Dict[str, str]] = None,
         image_path: str = "",
-        description: str = ""
     ) -> Character:
         """Erstellt einen neuen Charakter und speichert ihn.
-        
+
         Die character_id wird automatisch aus dem Namen und einem
         Zeitstempel generiert. Das macht sie eindeutig, auch wenn
         zwei Charaktere den gleichen Namen haben.
-        
+
         Args:
             name: Anzeigename des Charakters (z.B. "Max Mustermann")
-            image_path: Relativer Pfad zum Bild (optional)
             description: Kurzbeschreibung (optional)
-            
+            views: Dictionary mit Ansicht -> Bildpfad (optional)
+            poses: Dictionary mit Zustand -> Bildpfad (optional)
+            image_path: Alter Parameter für Rückwärtskompatibilität.
+                       Wird in die 'front'-Ansicht übernommen, falls views leer ist.
+
         Returns:
             Das neu erstellte Character-Objekt
         """
@@ -104,19 +109,24 @@ class CharacterLibrary:
         import time
         timestamp = int(time.time())
         character_id = f"{name.lower().replace(' ', '_')}_{timestamp}"
-        
+
+        # Rückwärtskompatibilität: altes image_path in views übernehmen
+        if not views and image_path:
+            views = {"front": image_path}
+
         # Neues Character-Objekt erstellen
         character = Character(
             character_id=character_id,
             name=name,
-            image_path=image_path,
-            description=description
+            description=description,
+            views=views,
+            poses=poses
         )
-        
+
         # Zum internen Dictionary hinzufügen und speichern
         self.characters[character_id] = character
         self._save_characters()
-        
+
         return character
     
     def get_character(self, character_id: str) -> Optional[Character]:

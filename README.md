@@ -54,7 +54,7 @@ Z:\Codes\Unterricht\Lorenz Mehle\Sommerkurs
 | 2 | Benutzerprofile | Code lesen, Debugging, Fehlersuche in bestehender Implementierung |
 | 3 | Character Library | Character-Klasse, CharacterLibrary-Manager, JSON-Persistenz |
 | 4 | Character Editor | Treeview, Toplevel-Dialoge, CRUD-Operationen in der GUI |
-| 5 | Scene Library & Scene Editor | Scene-Klasse, SceneLibrary-Manager, SceneEditor-GUI, Hauptmenü nach Anmeldung |
+| 5 | Scene Library & Scene Editor | Scene-Klasse, SceneLibrary-Manager, SceneEditor-GUI, Hauptmenü nach Anmeldung, 2D-Charaktere mit Ansichten & Bewegungen, Zeichen-Canvas für Landschaften |
 
 ## Installation
 

@@ -1,7 +1,18 @@
 # Character Editor für Record Studio
-# Grafische Oberfläche zur Verwaltung von Charakteren (CRUD-Operationen)
+# Grafische Oberfläche zur Verwaltung von 2D-Charakteren (CRUD-Operationen)
 # Zeigt eine Liste aller Charaktere an und ermöglicht das
-# Erstellen, Bearbeiten und Löschen von Charakteren in der CharacterLibrary.
+# Erstellen, Bearbeiten und Löschen von Charakteren.
+#
+# Jeder Charakter kann mehrere Ansichten haben:
+#   - front:       Vorderansicht
+#   - side_left:   Seitenansicht von links
+#   - side_right:  Seitenansicht von rechts
+#   - back:        Rückansicht
+#
+# Und mehrere Bewegungs-Zustände (Poses):
+#   - idle:    Stehend / ruhig
+#   - walking: Laufend
+#   - talking: Sprechend (Mund offen)
 
 # Importiert die Tkinter-Bibliothek für GUI-Fenster
 import tkinter as tk
@@ -12,11 +23,30 @@ from tkinter import ttk, messagebox, filedialog
 # Importiert die CharacterLibrary für CRUD-Operationen auf Charakteren
 from core.character_library import CharacterLibrary
 
+# Importiert die Character-Klasse für AVAILABLE_VIEWS und AVAILABLE_POSES
+from core.character import Character
+
 # Importiert shutil zum Kopieren von Bilddateien in das assets/-Verzeichnis
 import shutil
 
 # Importiert os für Pfad-Operationen (Verzeichnisse prüfen, Dateinamen extrahieren)
 import os
+
+
+# Anzeigename für Ansichten in der GUI
+VIEW_LABELS = {
+    "front": "Vorderansicht",
+    "side_left": "Seitenansicht (links)",
+    "side_right": "Seitenansicht (rechts)",
+    "back": "Rückansicht",
+}
+
+# Anzeigename für Bewegungs-Zustände in der GUI
+POSE_LABELS = {
+    "idle": "Stehend (idle)",
+    "walking": "Laufend (walking)",
+    "talking": "Sprechend (talking)",
+}
 
 
 class CharacterEditor(tk.Toplevel):
@@ -52,11 +82,10 @@ class CharacterEditor(tk.Toplevel):
         self.selected_character_id = None
 
         # Fenster-Titel festlegen (erscheint in der Titelleiste)
-        self.title("Charaktere verwalten")
-        # Fenstergröße festlegen: 600 Pixel breit, 400 Pixel hoch
-        self.geometry("600x400")
+        self.title("Charaktere verwalten – 2D Figuren")
+        # Fenstergröße festlegen: 700 Pixel breit, 450 Pixel hoch
+        self.geometry("700x450")
         # Das Fenster als Tochter des Hauptfensters kennzeichnen (transient)
-        # Dadurch folgt es dem Hauptfenster bei Minimieren und erscheint zentriert darüber
         self.transient(parent)
 
         # Die Benutzeroberfläche erstellen (Treeview, Buttons, Schließen-Button)
@@ -69,40 +98,40 @@ class CharacterEditor(tk.Toplevel):
         """Erstellt alle sichtbaren Elemente des Editor-Fensters.
 
         Aufbau:
-        - Oben: ttk.Treeview mit zwei Spalten (Name, Beschreibung)
+        - Oben: ttk.Treeview mit drei Spalten (Name, Ansichten, Beschreibung)
         - Darunter: Drei Buttons (Neuer Charakter, Bearbeiten, Löschen)
         - Unten: Schließen-Button
         """
         # ---------- TREVIEW (Charakterliste) ----------
-        # ttk.Treeview mit zwei benannten Spalten erstellen
-        # show="headings" versteckt die Standard-Baum-Spalte ganz links
+        # ttk.Treeview mit drei benannten Spalten erstellen
         self.tree = ttk.Treeview(
             self,
-            columns=("name", "description"),
+            columns=("name", "views", "description"),
             show="headings"
         )
 
-        # Spaltenüberschriften (Headings) festlegen
+        # Spaltenüberschriften festlegen
         self.tree.heading("name", text="Name")
+        self.tree.heading("views", text="Ansichten")
         self.tree.heading("description", text="Beschreibung")
 
-        # Spaltenbreiten festlegen (Gesamtbreite passt sich an Fenstergröße an)
-        self.tree.column("name", width=200)
+        # Spaltenbreiten festlegen
+        self.tree.column("name", width=180)
+        self.tree.column("views", width=120)
         self.tree.column("description", width=350)
 
-        # Treeview mit Rand und automatischem Resize platzieren
+        # Treeview platzieren
         self.tree.pack(fill="both", expand=True, padx=10, pady=10)
 
         # Wenn der Benutzer eine Zeile in der Treeview auswählt,
-        # wird _on_tree_select aufgerufen (aktiviert/deaktiviert Edit- und Delete-Buttons)
+        # wird _on_tree_select aufgerufen
         self.tree.bind("<<TreeviewSelect>>", self._on_tree_select)
 
         # ---------- BUTTON-LEISTE ----------
-        # Einen Rahmen (Frame) für die drei Aktions-Buttons erstellen
         button_frame = tk.Frame(self)
         button_frame.pack(pady=10)
 
-        # Button: Neuer Charakter – öffnet einen Dialog zur Eingabe von Name, Bildpfad, Beschreibung
+        # Button: Neuer Charakter
         self.new_btn = tk.Button(
             button_frame,
             text="Neuer Charakter",
@@ -111,8 +140,7 @@ class CharacterEditor(tk.Toplevel):
         )
         self.new_btn.pack(side="left", padx=5)
 
-        # Button: Bearbeiten – nur aktiv, wenn eine Zeile ausgewählt ist
-        # Wird in _on_tree_select aktiviert/deaktiviert
+        # Button: Bearbeiten
         self.edit_btn = tk.Button(
             button_frame,
             text="Bearbeiten",
@@ -122,8 +150,7 @@ class CharacterEditor(tk.Toplevel):
         )
         self.edit_btn.pack(side="left", padx=5)
 
-        # Button: Löschen – nur aktiv, wenn eine Zeile ausgewählt ist
-        # Zeigt vor dem Löschen einen Bestätigungsdialog an
+        # Button: Löschen
         self.delete_btn = tk.Button(
             button_frame,
             text="Löschen",
@@ -134,7 +161,6 @@ class CharacterEditor(tk.Toplevel):
         self.delete_btn.pack(side="left", padx=5)
 
         # ---------- SCHLIESSEN-BUTTON ----------
-        # Schließt das Editor-Fenster
         self.close_btn = tk.Button(
             self,
             text="Schließen",
@@ -144,199 +170,229 @@ class CharacterEditor(tk.Toplevel):
         self.close_btn.pack(pady=10)
 
     def _refresh_list(self):
-        """Lädt alle Charaktere neu und füllt die Treeview-Liste auf.
-
-        Die Methode wird nach jeder Änderung (Neu/Bearbeiten/Löschen)
-        aufgerufen, um sicherzustellen, dass die Anzeige aktuell ist.
-        """
+        """Lädt alle Charaktere neu und füllt die Treeview-Liste auf."""
         # Alle vorhandenen Einträge in der Treeview entfernen
         for item in self.tree.get_children():
             self.tree.delete(item)
 
-        # Alle Charaktere laden (get_all_characters() liefert sie bereits alphabetisch sortiert)
+        # Alle Charaktere laden (alphabetisch sortiert)
         characters = self.character_library.get_all_characters()
 
-        # Jeden Charakter als neue Zeile in die Treeview einfügen
-        # Die character_id wird als iid (item id) verwendet, damit wir später
-        # den zugehörigen Charakter für Bearbeiten/Löschen wiederfinden
+        # Jeden Charakter als neue Zeile einfügen
         for character in characters:
+            # Anzahl der gesetzten Ansichten anzeigen
+            view_count = len([v for v in character.views.values() if v])
+            view_text = f"{view_count}/{len(Character.AVAILABLE_VIEWS)}"
             self.tree.insert(
                 "",
                 "end",
                 iid=character.character_id,
-                values=(character.name, character.description)
+                values=(character.name, view_text, character.description)
             )
 
     def _on_tree_select(self, event):
-        """Wird aufgerufen, wenn der Benutzer eine Zeile in der Treeview auswählt.
-
-        Aktiviert die "Bearbeiten"- und "Löschen"-Buttons, wenn eine Zeile
-        ausgewählt ist, und deaktiviert sie, wenn die Auswahl aufgehoben wird.
-
-        Args:
-            event: Das TreeviewSelect-Ereignis (wird von Tkinter automatisch übergeben)
-        """
-        # Die aktuell ausgewählten Item-IDs abrufen
+        """Wird aufgerufen, wenn der Benutzer eine Zeile auswählt."""
         selected = self.tree.selection()
 
         if selected:
-            # Eine Zeile ist ausgewählt: die character_id speichern und Buttons aktivieren
             self.selected_character_id = selected[0]
             self.edit_btn.config(state="normal")
             self.delete_btn.config(state="normal")
         else:
-            # Keine Zeile mehr ausgewählt: ID zurücksetzen und Buttons deaktivieren
             self.selected_character_id = None
             self.edit_btn.config(state="disabled")
             self.delete_btn.config(state="disabled")
 
     def _open_create_dialog(self):
-        """Öffnet einen Dialog zum Erstellen eines neuen Charakters.
-
-        Ruft die interne Methode _open_character_dialog auf, ohne eine
-        character_id zu übergeben (was den Modus "Neu" auslöst).
-        """
-        # character_id=None signalisiert: Neuer Charakter (nicht Bearbeiten)
+        """Öffnet einen Dialog zum Erstellen eines neuen Charakters."""
         self._open_character_dialog(character_id=None)
 
     def _open_edit_dialog(self):
-        """Öffnet einen Dialog zum Bearbeiten des ausgewählten Charakters.
-
-        Die Eingabefelder werden mit den aktuellen Werten des Charakters
-        vorbelegt. Beim Speichern wird update_character() aufgerufen.
-        """
-        # Wenn nichts ausgewählt ist, nichts tun (Sicherheitscheck)
+        """Öffnet einen Dialog zum Bearbeiten des ausgewählten Charakters."""
         if self.selected_character_id is None:
             return
-
-        # character_id setzen: Der Dialog weiß, dass er bearbeiten (nicht erstellen) soll
         self._open_character_dialog(character_id=self.selected_character_id)
 
     def _open_character_dialog(self, character_id=None):
         """Öffnet einen gemeinsamen Dialog für Neu- und Bearbeiten-Modus.
 
-        Der Dialog enthält Eingabefelder für Name, Bildpfad und Beschreibung.
-        Im Bearbeiten-Modus (character_id ist gesetzt) werden die Felder
-        mit den aktuellen Werten vorbelegt.
+        Der Dialog enthält:
+        - Name und Beschreibung Eingabefelder
+        - Für jede Ansicht (front, side_left, side_right, back):
+          ein "Durchsuchen..."-Button zum Auswählen eines Bildes
+        - Für jeden Bewegungs-Zustand (idle, walking, talking):
+          ein "Durchsuchen..."-Button zum Auswählen eines Bildes
 
         Args:
             character_id: None für einen neuen Charakter, sonst die ID
-                          des zu bearbeitenden Charakters
         """
-        # Bestimme, ob es um Erstellen oder Bearbeiten geht
-        # (wird für den Fenster-Titel verwendet)
         is_edit_mode = character_id is not None
 
         # ---------- DIALOG-FENSTER ERSTELLEN ----------
         dialog = tk.Toplevel(self)
         dialog.title("Charakter bearbeiten" if is_edit_mode else "Neuer Charakter")
-        dialog.geometry("400x300")
-        # Der Dialog ist ein Tochterfenster des Editors (transient)
+        dialog.geometry("600x700")
         dialog.transient(self)
 
-        # ---------- EINGABEFELDER ----------
-        # Name-Eingabe
-        tk.Label(dialog, text="Name:").pack(pady=(20, 5))
-        name_var = tk.StringVar()
-        tk.Entry(dialog, textvariable=name_var, width=40).pack()
+        # Scrollbarer Bereich für viele Eingabefelder
+        canvas = tk.Canvas(dialog)
+        scrollbar = ttk.Scrollbar(dialog, orient="vertical", command=canvas.yview)
+        scroll_frame = tk.Frame(canvas)
 
-        # Bildpfad-Eingabe (schreibgeschützt, wird nur über "Durchsuchen..." gesetzt)
-        tk.Label(dialog, text="Bildpfad:").pack(pady=(10, 5))
-        image_var = tk.StringVar()
-        
-        # Ein Frame für die horizontale Anordnung von Entry und Button
-        image_frame = tk.Frame(dialog)
-        image_frame.pack()
-        
-        # Das Entry-Feld ist schreibgeschützt (state="readonly"), damit der Benutzer
-        # den Pfad nicht versehentlich von Hand falsch eingeben kann.
-        # Der Pfad wird ausschließlich über den "Durchsuchen..."-Button gesetzt.
-        image_entry = tk.Entry(
-            image_frame,
-            textvariable=image_var,
-            width=35,
-            state="readonly"
+        scroll_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
         )
-        image_entry.pack(side="left", padx=(0, 5))
-        
-        # "Durchsuchen..."-Button öffnet den Windows-Dateidialog zur Bildauswahl
-        # und kopiert die ausgewählte Datei automatisch in assets/characters/
-        tk.Button(
-            image_frame,
-            text="Durchsuchen...",
-            command=lambda: self._select_image_file(image_var)
-        ).pack(side="left")
 
-        # Beschreibung-Eingabe
-        tk.Label(dialog, text="Beschreibung:").pack(pady=(10, 5))
+        canvas.create_window((0, 0), window=scroll_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+
+        # ---------- BASIS-INFO ----------
+        tk.Label(scroll_frame, text="Name:").pack(pady=(15, 5))
+        name_var = tk.StringVar()
+        tk.Entry(scroll_frame, textvariable=name_var, width=50).pack()
+
+        tk.Label(scroll_frame, text="Beschreibung:").pack(pady=(10, 5))
         desc_var = tk.StringVar()
-        tk.Entry(dialog, textvariable=desc_var, width=40).pack()
+        tk.Entry(scroll_frame, textvariable=desc_var, width=50).pack()
 
-        # Wenn Bearbeiten-Modus: Die Eingabefelder mit den aktuellen Werten vorbelegen
+        # ---------- ANSICHTEN ----------
+        tk.Label(
+            scroll_frame,
+            text="Ansichten (2D Figuren aus verschiedenen Richtungen):",
+            font=tk.font.Font(family="Arial", size=11, weight="bold")
+        ).pack(pady=(20, 10))
+
+        # Dictionary für die Ansicht-Variablen
+        view_vars = {}
+
+        for view_name in Character.AVAILABLE_VIEWS:
+            label_text = VIEW_LABELS.get(view_name, view_name)
+            tk.Label(scroll_frame, text=label_text).pack(pady=(5, 0))
+
+            view_var = tk.StringVar()
+            view_vars[view_name] = view_var
+
+            frame = tk.Frame(scroll_frame)
+            frame.pack()
+
+            entry = tk.Entry(frame, textvariable=view_var, width=45, state="readonly")
+            entry.pack(side="left", padx=(0, 5))
+
+            tk.Button(
+                frame,
+                text="Durchsuchen...",
+                command=lambda vn=view_name, vv=view_var: self._select_image_file(vv, vn)
+            ).pack(side="left")
+
+        # ---------- BEWEGUNGS-ZUSTÄNDE ----------
+        tk.Label(
+            scroll_frame,
+            text="Bewegungs-Zustände (Poses):",
+            font=tk.font.Font(family="Arial", size=11, weight="bold")
+        ).pack(pady=(20, 10))
+
+        # Dictionary für die Pose-Variablen
+        pose_vars = {}
+
+        for pose_name in Character.AVAILABLE_POSES:
+            label_text = POSE_LABELS.get(pose_name, pose_name)
+            tk.Label(scroll_frame, text=label_text).pack(pady=(5, 0))
+
+            pose_var = tk.StringVar()
+            pose_vars[pose_name] = pose_var
+
+            frame = tk.Frame(scroll_frame)
+            frame.pack()
+
+            entry = tk.Entry(frame, textvariable=pose_var, width=45, state="readonly")
+            entry.pack(side="left", padx=(0, 5))
+
+            tk.Button(
+                frame,
+                text="Durchsuchen...",
+                command=lambda pn=pose_name, pv=pose_var: self._select_image_file(pv, pn)
+            ).pack(side="left")
+
+        # ---------- IM BEARBEITEN-MODUS VORBELEGEN ----------
         if is_edit_mode:
             character = self.character_library.get_character(character_id)
             if character:
                 name_var.set(character.name)
-                image_var.set(character.image_path)
                 desc_var.set(character.description)
+                # Ansichten vorbelegen
+                for view_name in Character.AVAILABLE_VIEWS:
+                    path = character.get_view(view_name)
+                    if path:
+                        view_vars[view_name].set(path)
+                # Poses vorbelegen
+                for pose_name in Character.AVAILABLE_POSES:
+                    path = character.get_pose(pose_name)
+                    if path:
+                        pose_vars[pose_name].set(path)
 
         # ---------- SPEICHERN-BUTTON ----------
-        # Die save()-Funktion wird als lokale Funktion definiert,
-        # weil sie Zugriff auf die Eingabevariablen und character_id braucht
         def save():
             """Liest die Eingaben aus, speichert den Charakter und schließt den Dialog."""
-            # Eingaben auslesen und trimmen (entfernt führende/trailing Leerzeichen)
             name = name_var.get().strip()
-            image_path = image_var.get().strip()
             description = desc_var.get().strip()
 
-            # Einfache Validierung: Name darf nicht leer sein
+            # Validierung: Name darf nicht leer sein
             if not name:
                 messagebox.showwarning("Warnung", "Bitte gib einen Namen ein!")
                 return
 
+            # Ansichten sammeln (nur nicht-leere Pfade)
+            views = {}
+            for view_name, var in view_vars.items():
+                path = var.get().strip()
+                if path:
+                    views[view_name] = path
+
+            # Poses sammeln (nur nicht-leere Pfade)
+            poses = {}
+            for pose_name, var in pose_vars.items():
+                path = var.get().strip()
+                if path:
+                    poses[pose_name] = path
+
             if is_edit_mode:
-                # Bearbeiten: update_character mit der character_id aufrufen
+                # Bearbeiten: update_character aufrufen
                 self.character_library.update_character(
                     character_id,
                     name=name,
-                    image_path=image_path,
-                    description=description
+                    description=description,
+                    views=views,
+                    poses=poses
                 )
             else:
-                # Neu erstellen: create_character aufrufen (ID wird automatisch generiert)
+                # Neu erstellen
                 self.character_library.create_character(
                     name=name,
-                    image_path=image_path,
-                    description=description
+                    description=description,
+                    views=views,
+                    poses=poses
                 )
 
-            # Die Treeview-Liste nach der Änderung neu befüllen
+            # Treeview neu befüllen
             self._refresh_list()
-
-            # Dialog schließen
             dialog.destroy()
 
-        # Speichern-Button mit der save()-Funktion verknüpfen
-        tk.Button(dialog, text="Speichern", command=save).pack(pady=20)
+        tk.Button(scroll_frame, text="Speichern", command=save,
+                  font=tk.font.Font(family="Arial", size=12)).pack(pady=20)
 
-    def _select_image_file(self, image_var: tk.StringVar):
+    def _select_image_file(self, image_var: tk.StringVar, context: str = ""):
         """Öffnet einen Dateidialog zur Auswahl eines Charakter-Bildes.
 
-        Der Benutzer wählt eine Bilddatei aus (*.png, *.jpg, *.jpeg, *.gif, *.bmp).
-        Die Datei wird automatisch in den Ordner 'assets/characters/' kopiert,
-        damit sie im Projektverzeichnis liegt und nicht versehentlich gelöscht wird.
-
-        Falls im Zielordner bereits eine Datei mit demselben Namen existiert
-        (und es nicht genau dieselbe Datei ist), wird ein eindeutiger Name
-        durch Anhängen eines Zeitstempels erzeugt.
+        Die Datei wird automatisch in den Ordner 'assets/characters/' kopiert.
 
         Args:
             image_var: Die StringVar-Variable des Bildpfad-Eingabefelds.
-                       Nach erfolgreicher Auswahl wird sie auf den relativen
-                       Zielpfad gesetzt (z.B. "assets/characters/held.png").
+            context: Zusätzlicher Kontext für eindeutige Dateinamen (z.B. "front")
         """
-        # Windows-Dateidialog öffnen, nur Bildformate zulassen
         file_path = filedialog.askopenfilename(
             title="Charakterbild auswählen",
             filetypes=[
@@ -345,71 +401,48 @@ class CharacterEditor(tk.Toplevel):
             ]
         )
 
-        # Wenn der Benutzer "Abbrechen" geklickt hat, ist der Pfad leer -> nichts tun
         if not file_path:
             return
 
-        # Zielverzeichnis: assets/characters/ (relativ zum Arbeitsverzeichnis)
         target_dir = "assets/characters"
-
-        # Prüfen, ob das Zielverzeichnis existiert, ggf. erstellen
         os.makedirs(target_dir, exist_ok=True)
 
-        # Nur den Dateinamen aus dem Quellpfad extrahieren (z.B. "held.png")
         filename = os.path.basename(file_path)
 
-        # Zielpfad zusammensetzen: "assets/characters/held.png"
+        # Wenn ein Kontext gegeben ist, präfixen wir den Dateinamen
+        # z.B. "front_held.png" für die Vorderansicht
+        if context:
+            name_without_ext, ext = os.path.splitext(filename)
+            filename = f"{context}_{name_without_ext}{ext}"
+
         target_path = os.path.join(target_dir, filename)
 
-        # Prüfen, ob am Ziel bereits eine Datei mit diesem Namen existiert
+        # Eindeutigen Namen erzeugen, falls Datei existiert
         if os.path.exists(target_path):
-            # Prüfen, ob es dieselbe Datei ist (gleicher Pfad)
-            # os.path.samefile funktioniert auf Windows, vergleicht aber nur Pfade
-            # Ein einfacher String-Vergleich der absoluten Pfade ist ausreichend
             if os.path.abspath(file_path) != os.path.abspath(target_path):
-                # Es ist eine andere Datei mit demselben Namen -> Zeitstempel anhängen
-                # z.B. "held_1721234567.png"
                 import time
                 timestamp = int(time.time())
                 name_without_ext, ext = os.path.splitext(filename)
                 unique_filename = f"{name_without_ext}_{timestamp}{ext}"
                 target_path = os.path.join(target_dir, unique_filename)
 
-        # Die Quelldatei in den Zielordner kopieren
-        # shutil.copy2() erhält die Datei-Metadaten (Erstellungsdatum etc.)
         shutil.copy2(file_path, target_path)
-
-        # Den relativen Zielpfad in der image_var speichern,
-        # damit er im Eingabefeld angezeigt und später in character_data.json gespeichert wird
         image_var.set(target_path)
 
     def _delete_character(self):
-        """Löscht den ausgewählten Charakter nach einer Bestätigung.
-
-        Zeigt zuerst einen Bestätigungsdialog (messagebox.askyesno) an.
-        Erst wenn der Benutzer mit "Ja" bestätigt, wird der Charakter
-        aus der CharacterLibrary gelöscht und die Liste aktualisiert.
-        """
-        # Sicherheitscheck: Wenn nichts ausgewählt ist, nichts tun
+        """Löscht den ausgewählten Charakter nach einer Bestätigung."""
         if self.selected_character_id is None:
             return
 
-        # Bestätigungsdialog anzeigen: "Charakter wirklich löschen?"
-        # askyesno gibt True zurück, wenn der Benutzer auf "Ja" klickt
         if not messagebox.askyesno(
             "Bestätigung",
             "Charakter wirklich löschen?"
         ):
-            # Benutzer hat "Nein" geklickt: Nichts tun
             return
 
-        # Charakter in der Bibliothek löschen
         self.character_library.delete_character(self.selected_character_id)
-
-        # Liste neu laden, damit der gelöschte Charakter verschwindet
         self._refresh_list()
 
-        # Auswahl zurücksetzen und Buttons deaktivieren
         self.selected_character_id = None
         self.edit_btn.config(state="disabled")
         self.delete_btn.config(state="disabled")

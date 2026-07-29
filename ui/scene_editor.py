@@ -1,7 +1,11 @@
 # Scene Editor für Record Studio
-# Grafische Oberfläche zur Verwaltung von Szenen (CRUD-Operationen)
+# Grafische Oberfläche zur Verwaltung von Szenen (Landschaften)
 # Zeigt eine Liste aller Szenen an und ermöglicht das
-# Erstellen, Bearbeiten und Löschen von Szenen in der SceneLibrary.
+# Erstellen, Bearbeiten und Löschen von Szenen.
+#
+# Landschaften können auf zwei Arten erstellt werden:
+#   1. Bild importieren (PNG, JPG, etc.)
+#   2. Zeichnen direkt im Canvas (mit Pinsel, Farben, etc.)
 
 # Importiert die Tkinter-Bibliothek für GUI-Fenster
 import tkinter as tk
@@ -12,27 +16,27 @@ from tkinter import ttk, messagebox, filedialog
 # Importiert die SceneLibrary für CRUD-Operationen auf Szenen
 from core.scene_library import SceneLibrary
 
-# Importiert shutil zum Kopieren von Bilddateien in das assets/-Verzeichnis
+# Importiert shutil zum Kopieren von Bilddateien
 import shutil
 
-# Importiert os für Pfad-Operationen (Verzeichnisse prüfen, Dateinamen extrahieren)
+# Importiert os für Pfad-Operationen
 import os
+
+# Importiert Pillow (PIL) für das Speichern der Zeichnung als PNG
+from PIL import Image, ImageDraw, ImageTk
 
 
 class SceneEditor(tk.Toplevel):
     """Grafischer Editor für die Scene Library.
 
-    Erbt von tk.Toplevel, um ein eigenständiges Fenster zu erzeugen,
-    das als Kind des Hauptfensters (RecordStudioApp) erscheint.
+    Erbt von tk.Toplevel, um ein eigenständiges Fenster zu erzeugen.
 
     Die Klasse zeigt alle Szenen in einer ttk.Treeview-Liste an
     und bietet drei Aktionen: Neu erstellen, Bearbeiten und Löschen.
-    Jede Aktion öffnet bei Bedarf einen Toplevel-Dialog mit Eingabefeldern.
 
-    Attribute:
-        scene_library: Die SceneLibrary-Instanz, die die Daten verwaltet
-        selected_scene_id: ID der aktuell in der Liste ausgewählten Szene
-        tree: Die ttk.Treeview-Widget mit den Spalten Name und Beschreibung
+    Beim Erstellen/Bearbeiten kann der Benutzer wählen zwischen:
+      - Bild importieren: Eine vorhandene Landschafts-Datei auswählen
+      - Zeichnen: Eine Landschaft direkt im Canvas zeichnen
     """
 
     def __init__(self, parent, scene_library: SceneLibrary):
@@ -42,67 +46,40 @@ class SceneEditor(tk.Toplevel):
             parent: Elternfenster (RecordStudioApp-Instanz)
             scene_library: SceneLibrary-Instanz für CRUD-Operationen
         """
-        # Ruft den Konstruktor der Elternklasse (tk.Toplevel) auf
         super().__init__(parent)
 
-        # Referenz auf die SceneLibrary speichern, um später CRUD-Operationen auszuführen
         self.scene_library = scene_library
-
-        # ID der aktuell ausgewählten Szene (None, wenn nichts ausgewählt)
         self.selected_scene_id = None
 
-        # Fenster-Titel festlegen (erscheint in der Titelleiste)
-        self.title("Szenen verwalten")
-        # Fenstergröße festlegen: 600 Pixel breit, 400 Pixel hoch
-        self.geometry("600x400")
-        # Das Fenster als Tochter des Hauptfensters kennzeichnen (transient)
-        # Dadurch folgt es dem Hauptfenster bei Minimieren und erscheint zentriert darüber
+        self.title("Szenen verwalten – Landschaften")
+        self.geometry("700x450")
         self.transient(parent)
 
-        # Die Benutzeroberfläche erstellen (Treeview, Buttons, Schließen-Button)
         self._build_ui()
-
-        # Die Liste der Szenen beim Start initial befüllen
         self._refresh_list()
 
     def _build_ui(self):
-        """Erstellt alle sichtbaren Elemente des Editor-Fensters.
-
-        Aufbau:
-        - Oben: ttk.Treeview mit zwei benannten Spalten (Name, Beschreibung)
-        - Darunter: Drei Buttons (Neue Szene, Bearbeiten, Löschen)
-        - Unten: Schließen-Button
-        """
+        """Erstellt alle sichtbaren Elemente des Editor-Fensters."""
         # ---------- TREVIEW (Szenenliste) ----------
-        # ttk.Treeview mit zwei benannten Spalten erstellen
-        # show="headings" versteckt die Standard-Baum-Spalte ganz links
         self.tree = ttk.Treeview(
             self,
             columns=("name", "description"),
             show="headings"
         )
 
-        # Spaltenüberschriften (Headings) festlegen
         self.tree.heading("name", text="Name")
         self.tree.heading("description", text="Beschreibung")
 
-        # Spaltenbreiten festlegen (Gesamtbreite passt sich an Fenstergröße an)
         self.tree.column("name", width=200)
-        self.tree.column("description", width=350)
+        self.tree.column("description", width=450)
 
-        # Treeview mit Rand und automatischem Resize platzieren
         self.tree.pack(fill="both", expand=True, padx=10, pady=10)
-
-        # Wenn der Benutzer eine Zeile in der Treeview auswählt,
-        # wird _on_tree_select aufgerufen (aktiviert/deaktiviert Edit- und Delete-Buttons)
         self.tree.bind("<<TreeviewSelect>>", self._on_tree_select)
 
         # ---------- BUTTON-LEISTE ----------
-        # Einen Rahmen (Frame) für die drei Aktions-Buttons erstellen
         button_frame = tk.Frame(self)
         button_frame.pack(pady=10)
 
-        # Button: Neue Szene – öffnet einen Dialog zur Eingabe von Name, Hintergrundbild, Beschreibung
         self.new_btn = tk.Button(
             button_frame,
             text="Neue Szene",
@@ -111,8 +88,6 @@ class SceneEditor(tk.Toplevel):
         )
         self.new_btn.pack(side="left", padx=5)
 
-        # Button: Bearbeiten – nur aktiv, wenn eine Zeile ausgewählt ist
-        # Wird in _on_tree_select aktiviert/deaktiviert
         self.edit_btn = tk.Button(
             button_frame,
             text="Bearbeiten",
@@ -122,8 +97,6 @@ class SceneEditor(tk.Toplevel):
         )
         self.edit_btn.pack(side="left", padx=5)
 
-        # Button: Löschen – nur aktiv, wenn eine Zeile ausgewählt ist
-        # Zeigt vor dem Löschen einen Bestätigungsdialog an
         self.delete_btn = tk.Button(
             button_frame,
             text="Löschen",
@@ -134,7 +107,6 @@ class SceneEditor(tk.Toplevel):
         self.delete_btn.pack(side="left", padx=5)
 
         # ---------- SCHLIESSEN-BUTTON ----------
-        # Schließt das Editor-Fenster
         self.close_btn = tk.Button(
             self,
             text="Schließen",
@@ -144,21 +116,12 @@ class SceneEditor(tk.Toplevel):
         self.close_btn.pack(pady=10)
 
     def _refresh_list(self):
-        """Lädt alle Szenen neu und füllt die Treeview-Liste auf.
-
-        Die Methode wird nach jeder Änderung (Neu/Bearbeiten/Löschen)
-        aufgerufen, um sicherzustellen, dass die Anzeige aktuell ist.
-        """
-        # Alle vorhandenen Einträge in der Treeview entfernen
+        """Lädt alle Szenen neu und füllt die Treeview-Liste auf."""
         for item in self.tree.get_children():
             self.tree.delete(item)
 
-        # Alle Szenen laden (get_all_scenes() liefert sie bereits alphabetisch sortiert)
         scenes = self.scene_library.get_all_scenes()
 
-        # Jede Szene als neue Zeile in die Treeview einfügen
-        # Die scene_id wird als iid (item id) verwendet, damit wir später
-        # die zugehörige Szene für Bearbeiten/Löschen wiederfinden
         for scene in scenes:
             self.tree.insert(
                 "",
@@ -168,111 +131,89 @@ class SceneEditor(tk.Toplevel):
             )
 
     def _on_tree_select(self, event):
-        """Wird aufgerufen, wenn der Benutzer eine Zeile in der Treeview auswählt.
-
-        Aktiviert die "Bearbeiten"- und "Löschen"-Buttons, wenn eine Zeile
-        ausgewählt ist, und deaktiviert sie, wenn die Auswahl aufgehoben wird.
-
-        Args:
-            event: Das TreeviewSelect-Ereignis (wird von Tkinter automatisch übergeben)
-        """
-        # Die aktuell ausgewählten Item-IDs abrufen
+        """Wird aufgerufen, wenn der Benutzer eine Zeile auswählt."""
         selected = self.tree.selection()
 
         if selected:
-            # Eine Zeile ist ausgewählt: die scene_id speichern und Buttons aktivieren
             self.selected_scene_id = selected[0]
             self.edit_btn.config(state="normal")
             self.delete_btn.config(state="normal")
         else:
-            # Keine Zeile mehr ausgewählt: ID zurücksetzen und Buttons deaktivieren
             self.selected_scene_id = None
             self.edit_btn.config(state="disabled")
             self.delete_btn.config(state="disabled")
 
     def _open_create_dialog(self):
-        """Öffnet einen Dialog zum Erstellen einer neuen Szene.
-
-        Ruft die interne Methode _open_scene_dialog auf, ohne eine
-        scene_id zu übergeben (was den Modus "Neu" auslöst).
-        """
-        # scene_id=None signalisiert: Neue Szene (nicht Bearbeiten)
+        """Öffnet einen Dialog zum Erstellen einer neuen Szene."""
         self._open_scene_dialog(scene_id=None)
 
     def _open_edit_dialog(self):
-        """Öffnet einen Dialog zum Bearbeiten der ausgewählten Szene.
-
-        Die Eingabefelder werden mit den aktuellen Werten der Szene
-        vorbelegt. Beim Speichern wird update_scene() aufgerufen.
-        """
-        # Wenn nichts ausgewählt ist, nichts tun (Sicherheitscheck)
+        """Öffnet einen Dialog zum Bearbeiten der ausgewählten Szene."""
         if self.selected_scene_id is None:
             return
-
-        # scene_id setzen: Der Dialog weiß, dass er bearbeiten (nicht erstellen) soll
         self._open_scene_dialog(scene_id=self.selected_scene_id)
 
     def _open_scene_dialog(self, scene_id=None):
-        """Öffnet einen gemeinsamen Dialog für Neu- und Bearbeiten-Modus.
+        """Öffnet einen Dialog für Neu- und Bearbeiten-Modus.
 
-        Der Dialog enthält Eingabefelder für Name, Hintergrundbild und Beschreibung.
-        Im Bearbeiten-Modus (scene_id ist gesetzt) werden die Felder
-        mit den aktuellen Werten vorbelegt.
+        Der Dialog bietet zwei Möglichkeiten, eine Landschaft zu erstellen:
+          1. Bild importieren: Datei-Dialog öffnen
+          2. Zeichnen: Canvas mit Pinsel-Werkzeug öffnen
 
         Args:
             scene_id: None für eine neue Szene, sonst die ID
-                      der zu bearbeitenden Szene
         """
-        # Bestimme, ob es um Erstellen oder Bearbeiten geht
-        # (wird für den Fenster-Titel verwendet)
         is_edit_mode = scene_id is not None
 
-        # ---------- DIALOG-FENSTER ERSTELLEN ----------
         dialog = tk.Toplevel(self)
         dialog.title("Szene bearbeiten" if is_edit_mode else "Neue Szene")
-        dialog.geometry("400x300")
-        # Der Dialog ist ein Tochterfenster des Editors (transient)
+        dialog.geometry("500x400")
         dialog.transient(self)
 
-        # ---------- EINGABEFELDER ----------
-        # Name-Eingabe
-        tk.Label(dialog, text="Name:").pack(pady=(20, 5))
+        # ---------- BASIS-INFO ----------
+        tk.Label(dialog, text="Name:").pack(pady=(15, 5))
         name_var = tk.StringVar()
-        tk.Entry(dialog, textvariable=name_var, width=40).pack()
+        tk.Entry(dialog, textvariable=name_var, width=50).pack()
 
-        # Hintergrundbild-Eingabe (schreibgeschützt, wird nur über "Durchsuchen..." gesetzt)
-        tk.Label(dialog, text="Hintergrundbild:").pack(pady=(10, 5))
-        background_var = tk.StringVar()
-
-        # Ein Frame für die horizontale Anordnung von Entry und Button
-        background_frame = tk.Frame(dialog)
-        background_frame.pack()
-
-        # Das Entry-Feld ist schreibgeschützt (state="readonly"), damit der Benutzer
-        # den Pfad nicht versehentlich von Hand falsch eingeben kann.
-        # Der Pfad wird ausschließlich über den "Durchsuchen..."-Button gesetzt.
-        background_entry = tk.Entry(
-            background_frame,
-            textvariable=background_var,
-            width=35,
-            state="readonly"
-        )
-        background_entry.pack(side="left", padx=(0, 5))
-
-        # "Durchsuchen..."-Button öffnet den Windows-Dateidialog zur Bildauswahl
-        # und kopiert die ausgewählte Datei automatisch in assets/scenes/
-        tk.Button(
-            background_frame,
-            text="Durchsuchen...",
-            command=lambda: self._select_background_file(background_var)
-        ).pack(side="left")
-
-        # Beschreibung-Eingabe
         tk.Label(dialog, text="Beschreibung:").pack(pady=(10, 5))
         desc_var = tk.StringVar()
-        tk.Entry(dialog, textvariable=desc_var, width=40).pack()
+        tk.Entry(dialog, textvariable=desc_var, width=50).pack()
 
-        # Wenn Bearbeiten-Modus: Die Eingabefelder mit den aktuellen Werten vorbelegen
+        # ---------- HINTERGRUND ----------
+        tk.Label(
+            dialog,
+            text="Landschaft / Hintergrund:",
+            font=tk.font.Font(family="Arial", size=11, weight="bold")
+        ).pack(pady=(15, 5))
+
+        background_var = tk.StringVar()
+
+        # Anzeige des aktuellen Pfads
+        path_frame = tk.Frame(dialog)
+        path_frame.pack()
+        tk.Entry(path_frame, textvariable=background_var, width=45, state="readonly").pack(side="left", padx=(0, 5))
+
+        # ---------- AUSWAHL-METHODEN ----------
+        method_frame = tk.Frame(dialog)
+        method_frame.pack(pady=10)
+
+        # Button 1: Bild importieren
+        tk.Button(
+            method_frame,
+            text="Bild importieren",
+            command=lambda: self._select_background_file(background_var),
+            font=tk.font.Font(family="Arial", size=10)
+        ).pack(side="left", padx=5)
+
+        # Button 2: Zeichnen
+        tk.Button(
+            method_frame,
+            text="Zeichnen",
+            command=lambda: self._open_drawing_canvas(background_var),
+            font=tk.font.Font(family="Arial", size=10)
+        ).pack(side="left", padx=5)
+
+        # ---------- IM BEARBEITEN-MODUS VORBELEGEN ----------
         if is_edit_mode:
             scene = self.scene_library.get_scene(scene_id)
             if scene:
@@ -281,22 +222,16 @@ class SceneEditor(tk.Toplevel):
                 desc_var.set(scene.description)
 
         # ---------- SPEICHERN-BUTTON ----------
-        # Die save()-Funktion wird als lokale Funktion definiert,
-        # weil sie Zugriff auf die Eingabevariablen und scene_id braucht
         def save():
-            """Liest die Eingaben aus, speichert die Szene und schließt den Dialog."""
-            # Eingaben auslesen und trimmen (entfernt führende/trailing Leerzeichen)
             name = name_var.get().strip()
             background_path = background_var.get().strip()
             description = desc_var.get().strip()
 
-            # Einfache Validierung: Name darf nicht leer sein
             if not name:
                 messagebox.showwarning("Warnung", "Bitte gib einen Namen ein!")
                 return
 
             if is_edit_mode:
-                # Bearbeiten: update_scene mit der scene_id aufrufen
                 self.scene_library.update_scene(
                     scene_id,
                     name=name,
@@ -304,39 +239,26 @@ class SceneEditor(tk.Toplevel):
                     description=description
                 )
             else:
-                # Neu erstellen: create_scene aufrufen (ID wird automatisch generiert)
                 self.scene_library.create_scene(
                     name=name,
                     background_path=background_path,
                     description=description
                 )
 
-            # Die Treeview-Liste nach der Änderung neu befüllen
             self._refresh_list()
-
-            # Dialog schließen
             dialog.destroy()
 
-        # Speichern-Button mit der save()-Funktion verknüpfen
-        tk.Button(dialog, text="Speichern", command=save).pack(pady=20)
+        tk.Button(dialog, text="Speichern", command=save,
+                  font=tk.font.Font(family="Arial", size=12)).pack(pady=20)
 
     def _select_background_file(self, background_var: tk.StringVar):
         """Öffnet einen Dateidialog zur Auswahl eines Hintergrundbildes.
 
-        Der Benutzer wählt eine Bilddatei aus (*.png, *.jpg, *.jpeg, *.gif, *.bmp).
-        Die Datei wird automatisch in den Ordner 'assets/scenes/' kopiert,
-        damit sie im Projektverzeichnis liegt und nicht versehentlich gelöscht wird.
-
-        Falls im Zielordner bereits eine Datei mit demselben Namen existiert
-        (und es nicht genau dieselbe Datei ist), wird ein eindeutiger Name
-        durch Anhängen eines Zeitstempels erzeugt.
+        Die Datei wird automatisch in den Ordner 'assets/scenes/' kopiert.
 
         Args:
             background_var: Die StringVar-Variable des Hintergrundbild-Eingabefelds.
-                           Nach erfolgreicher Auswahl wird sie auf den relativen
-                           Zielpfad gesetzt (z.B. "assets/scenes/wohnzimmer.png").
         """
-        # Windows-Dateidialog öffnen, nur Bildformate zulassen
         file_path = filedialog.askopenfilename(
             title="Hintergrundbild auswählen",
             filetypes=[
@@ -345,70 +267,334 @@ class SceneEditor(tk.Toplevel):
             ]
         )
 
-        # Wenn der Benutzer "Abbrechen" geklickt hat, ist der Pfad leer -> nichts tun
         if not file_path:
             return
 
-        # Zielverzeichnis: assets/scenes/ (relativ zum Arbeitsverzeichnis)
         target_dir = "assets/scenes"
-
-        # Prüfen, ob das Zielverzeichnis existiert, ggf. erstellen
         os.makedirs(target_dir, exist_ok=True)
 
-        # Nur den Dateinamen aus dem Quellpfad extrahieren (z.B. "wohnzimmer.png")
         filename = os.path.basename(file_path)
-
-        # Zielpfad zusammensetzen: "assets/scenes/wohnzimmer.png"
         target_path = os.path.join(target_dir, filename)
 
-        # Prüfen, ob am Ziel bereits eine Datei mit diesem Namen existiert
         if os.path.exists(target_path):
-            # Prüfen, ob es dieselbe Datei ist (gleicher Pfad)
-            # Ein einfacher String-Vergleich der absoluten Pfade ist ausreichend
             if os.path.abspath(file_path) != os.path.abspath(target_path):
-                # Es ist eine andere Datei mit demselben Namen -> Zeitstempel anhängen
-                # z.B. "wohnzimmer_1721234567.png"
                 import time
                 timestamp = int(time.time())
                 name_without_ext, ext = os.path.splitext(filename)
                 unique_filename = f"{name_without_ext}_{timestamp}{ext}"
                 target_path = os.path.join(target_dir, unique_filename)
 
-        # Die Quelldatei in den Zielordner kopieren
-        # shutil.copy2() erhält die Datei-Metadaten (Erstellungsdatum etc.)
         shutil.copy2(file_path, target_path)
-
-        # Den relativen Zielpfad in der background_var speichern,
-        # damit er im Eingabefeld angezeigt und später in scene_data.json gespeichert wird
         background_var.set(target_path)
 
-    def _delete_scene(self):
-        """Löscht die ausgewählte Szene nach einer Bestätigung.
+    def _open_drawing_canvas(self, background_var: tk.StringVar):
+        """Öffnet ein Zeichen-Canvas, in dem der Benutzer eine Landschaft zeichnen kann.
 
-        Zeigt zuerst einen Bestätigungsdialog (messagebox.askyesno) an.
-        Erst wenn der Benutzer mit "Ja" bestätigt, wird die Szene
-        aus der SceneLibrary gelöscht und die Liste aktualisiert.
+        Der Benutzer kann mit der Maus zeichnen, die Pinselgröße und Farbe
+        einstellen. Beim Klick auf "Speichern" wird die Zeichnung als PNG
+        in den Ordner 'assets/scenes/' gespeichert und der Pfad in
+        background_var gesetzt.
+
+        Args:
+            background_var: Die StringVar-Variable des Hintergrundbild-Eingabefelds.
         """
-        # Sicherheitscheck: Wenn nichts ausgewählt ist, nichts tun
+        DrawingCanvas(self, background_var)
+
+    def _delete_scene(self):
+        """Löscht die ausgewählte Szene nach einer Bestätigung."""
         if self.selected_scene_id is None:
             return
 
-        # Bestätigungsdialog anzeigen: "Szene wirklich löschen?"
-        # askyesno gibt True zurück, wenn der Benutzer auf "Ja" klickt
         if not messagebox.askyesno(
             "Bestätigung",
             "Szene wirklich löschen?"
         ):
-            # Benutzer hat "Nein" geklickt: Nichts tun
             return
 
-        # Szene in der Bibliothek löschen
         self.scene_library.delete_scene(self.selected_scene_id)
-
-        # Liste neu laden, damit die gelöschte Szene verschwindet
         self._refresh_list()
 
-        # Auswahl zurücksetzen und Buttons deaktivieren
         self.selected_scene_id = None
         self.edit_btn.config(state="disabled")
         self.delete_btn.config(state="disabled")
+
+
+class DrawingCanvas(tk.Toplevel):
+    """Zeichen-Canvas-Fenster zum Zeichnen von Landschaften.
+
+    Bietet ein Canvas an, in dem der Benutzer mit der Maus zeichnen kann.
+    Einstellbar sind:
+      - Pinselgröße (1-50 Pixel)
+      - Farbe (über einen Color-Chooser)
+      - Radiergummi (weiß)
+
+    Beim Klick auf "Speichern" wird die Zeichnung als PNG gespeichert.
+
+    Attribute:
+        parent: Elternfenster (SceneEditor-Instanz)
+        background_var: StringVar, in der der gespeicherte Pfad landet
+        canvas: Das tk.Canvas-Widget zum Zeichnen
+        brush_size: Aktuelle Pinselgröße
+        brush_color: Aktuelle Pinselfarbe
+        is_erasing: True, wenn der Radiergummi aktiv ist
+        last_x, last_y: Letzte Mausposition für flüssiges Zeichnen
+    """
+
+    # Canvas-Größe
+    CANVAS_WIDTH = 800
+    CANVAS_HEIGHT = 500
+
+    # Standard-Hintergrundfarbe des Canvas
+    CANVAS_BG = "white"
+
+    def __init__(self, parent, background_var: tk.StringVar):
+        """Initialisiert das Zeichen-Canvas.
+
+        Args:
+            parent: Elternfenster (SceneEditor-Instanz)
+            background_var: StringVar, in der der gespeicherte Pfad landet
+        """
+        super().__init__(parent)
+
+        self.parent = parent
+        self.background_var = background_var
+
+        # Zeichnen-Einstellungen
+        self.brush_size = 5
+        self.brush_color = "black"
+        self.is_erasing = False
+        self.last_x = None
+        self.last_y = None
+
+        # Fenster-Einstellungen
+        self.title("Landschaft zeichnen")
+        self.geometry(f"{self.CANVAS_WIDTH + 200}x{self.CANVAS_HEIGHT + 100}")
+        self.transient(parent)
+
+        self._build_ui()
+
+    def _build_ui(self):
+        """Erstellt die Benutzeroberfläche des Zeichen-Canvas."""
+        # ---------- WERKZEUG-LEISTE (links) ----------
+        tool_frame = tk.Frame(self, width=180)
+        tool_frame.pack(side="left", fill="y", padx=5, pady=5)
+
+        tk.Label(
+            tool_frame,
+            text="Werkzeuge",
+            font=tk.font.Font(family="Arial", size=12, weight="bold")
+        ).pack(pady=(10, 15))
+
+        # Pinselgröße
+        tk.Label(tool_frame, text="Pinselgröße:").pack(anchor="w")
+        self.size_var = tk.IntVar(value=self.brush_size)
+        size_scale = tk.Scale(
+            tool_frame,
+            from_=1,
+            to=50,
+            orient="horizontal",
+            variable=self.size_var,
+            command=self._on_size_change
+        )
+        size_scale.pack(fill="x", pady=(0, 15))
+
+        # Farbe
+        tk.Label(tool_frame, text="Farbe:").pack(anchor="w")
+        self.color_btn = tk.Button(
+            tool_frame,
+            text="Farbe wählen",
+            command=self._choose_color,
+            bg=self.brush_color,
+            font=tk.font.Font(family="Arial", size=10)
+        )
+        self.color_btn.pack(fill="x", pady=(0, 5))
+
+        # Aktuelle Farbe anzeigen
+        self.color_preview = tk.Canvas(tool_frame, width=170, height=30, bg=self.brush_color)
+        self.color_preview.pack(pady=(0, 15))
+
+        # Radiergummi
+        self.erase_btn = tk.Button(
+            tool_frame,
+            text="Radiergummi",
+            command=self._toggle_eraser,
+            font=tk.font.Font(family="Arial", size=10)
+        )
+        self.erase_btn.pack(fill="x", pady=(0, 15))
+
+        # Pinsel (zurück zum Zeichnen)
+        self.brush_btn = tk.Button(
+            tool_frame,
+            text="Pinsel",
+            command=self._select_brush,
+            font=tk.font.Font(family="Arial", size=10),
+            relief="sunken"
+        )
+        self.brush_btn.pack(fill="x", pady=(0, 15))
+
+        # Canvas leeren
+        tk.Button(
+            tool_frame,
+            text="Canvas leeren",
+            command=self._clear_canvas,
+            font=tk.font.Font(family="Arial", size=10)
+        ).pack(fill="x", pady=(0, 15))
+
+        # Speichern
+        tk.Button(
+            tool_frame,
+            text="Als PNG speichern",
+            command=self._save_drawing,
+            font=tk.font.Font(family="Arial", size=11, weight="bold"),
+            bg="lightgreen"
+        ).pack(fill="x", pady=(20, 5))
+
+        # Abbrechen
+        tk.Button(
+            tool_frame,
+            text="Abbrechen",
+            command=self.destroy,
+            font=tk.font.Font(family="Arial", size=10)
+        ).pack(fill="x", pady=(5, 10))
+
+        # ---------- CANVAS (rechts) ----------
+        self.canvas = tk.Canvas(
+            self,
+            width=self.CANVAS_WIDTH,
+            height=self.CANVAS_HEIGHT,
+            bg=self.CANVAS_BG,
+            cursor="crosshair"
+        )
+        self.canvas.pack(side="right", padx=5, pady=5)
+
+        # Maus-Ereignisse binden
+        self.canvas.bind("<Button-1>", self._on_mouse_down)
+        self.canvas.bind("<B1-Motion>", self._on_mouse_move)
+        self.canvas.bind("<ButtonRelease-1>", self._on_mouse_up)
+
+    def _on_size_change(self, value):
+        """Wird aufgerufen, wenn die Pinselgröße geändert wird."""
+        self.brush_size = int(value)
+
+    def _choose_color(self):
+        """Öffnet den Farbwaehler-Dialog."""
+        from tkinter import colorchooser
+        color = colorchooser.askcolor(title="Pinselfarbe wählen")
+        if color[1]:  # color[1] ist der Hex-String
+            self.brush_color = color[1]
+            self.color_btn.config(bg=self.brush_color)
+            self.color_preview.config(bg=self.brush_color)
+            # Wenn Radiergummi aktiv war, zurück zum Pinsel wechseln
+            self.is_erasing = False
+            self.erase_btn.config(relief="raised")
+            self.brush_btn.config(relief="sunken")
+
+    def _toggle_eraser(self):
+        """Schaltet den Radiergummi-Modus um."""
+        self.is_erasing = not self.is_erasing
+        if self.is_erasing:
+            self.erase_btn.config(relief="sunken")
+            self.brush_btn.config(relief="raised")
+        else:
+            self.erase_btn.config(relief="raised")
+            self.brush_btn.config(relief="sunken")
+
+    def _select_brush(self):
+        """Wählt den Pinsel-Modus (nicht Radiergummi)."""
+        self.is_erasing = False
+        self.brush_btn.config(relief="sunken")
+        self.erase_btn.config(relief="raised")
+
+    def _clear_canvas(self):
+        """Leert das gesamte Canvas."""
+        self.canvas.delete("all")
+
+    def _on_mouse_down(self, event):
+        """Wird aufgerufen, wenn die Maustaste gedrückt wird."""
+        self.last_x = event.x
+        self.last_y = event.y
+        # Einen Punkt zeichnen (für einzelne Klicks)
+        self._draw_point(event.x, event.y)
+
+    def _on_mouse_move(self, event):
+        """Wird aufgerufen, wenn die Maus bei gedrückter Taste bewegt wird."""
+        if self.last_x is not None and self.last_y is not None:
+            self._draw_line(self.last_x, self.last_y, event.x, event.y)
+        self.last_x = event.x
+        self.last_y = event.y
+
+    def _on_mouse_up(self, event):
+        """Wird aufgerufen, wenn die Maustaste losgelassen wird."""
+        self.last_x = None
+        self.last_y = None
+
+    def _draw_point(self, x, y):
+        """Zeichnet einen Punkt (Kreis) an der Position (x, y)."""
+        color = self.CANVAS_BG if self.is_erasing else self.brush_color
+        radius = self.brush_size / 2
+        self.canvas.create_oval(
+            x - radius, y - radius,
+            x + radius, y + radius,
+            fill=color,
+            outline=color
+        )
+
+    def _draw_line(self, x1, y1, x2, y2):
+        """Zeichnet eine Linie von (x1, y1) nach (x2, y2)."""
+        color = self.CANVAS_BG if self.is_erasing else self.brush_color
+        self.canvas.create_line(
+            x1, y1, x2, y2,
+            fill=color,
+            width=self.brush_size,
+            capstyle="round",
+            smooth=True
+        )
+
+    def _save_drawing(self):
+        """Speichert die Zeichnung als PNG-Datei.
+
+        Die Datei wird in 'assets/scenes/' gespeichert.
+        Der Dateiname wird aus einem Zeitstempel generiert.
+        Der Pfad wird in background_var gesetzt.
+        """
+        # Zielverzeichnis
+        target_dir = "assets/scenes"
+        os.makedirs(target_dir, exist_ok=True)
+
+        # Dateiname aus Zeitstempel
+        import time
+        timestamp = int(time.time())
+        filename = f"drawing_{timestamp}.png"
+        target_path = os.path.join(target_dir, filename)
+
+        # Canvas-Inhalt als PostScript exportieren und mit Pillow in PNG umwandeln
+        # PostScript ist die einzige Möglichkeit, den Canvas-Inhalt zu speichern
+        ps_file = target_path.replace(".png", ".ps")
+        self.canvas.postscript(file=ps_file, colormode="color")
+
+        try:
+            # PostScript mit Pillow in PNG umwandeln
+            img = Image.open(ps_file)
+            img.save(target_path, "png")
+
+            # PostScript-Datei löschen (nicht mehr benötigt)
+            if os.path.exists(ps_file):
+                os.remove(ps_file)
+
+            # Pfad in der background_var speichern
+            self.background_var.set(target_path)
+
+            messagebox.showinfo(
+                "Gespeichert",
+                f"Die Zeichnung wurde gespeichert:\n{target_path}"
+            )
+            self.destroy()
+
+        except Exception as e:
+            messagebox.showerror(
+                "Fehler",
+                f"Die Zeichnung konnte nicht gespeichert werden:\n{str(e)}"
+            )
+            # PostScript-Datei bei Fehler auch löschen
+            if os.path.exists(ps_file):
+                os.remove(ps_file)

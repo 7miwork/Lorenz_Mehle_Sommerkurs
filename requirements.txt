@@ -1,3 +1,7 @@
-# Für diese Stunde werden keine externen Bibliotheken benötigt.
-# Neue Abhängigkeiten werden hier automatisch ergänzt, sobald sie
-# in einer späteren Unterrichtsstunde eingeführt werden.
+# Record Studio - Abhängigkeiten
+# Tkinter ist Teil der Python-Standardbibliothek und muss nicht separat installiert werden.
+
+# Pillow wird für die Bildverarbeitung verwendet:
+# - Speichern von Zeichnungen als PNG im Scene Editor
+# - Zukünftige Bild-Manipulation für Charaktere und Szenen
+Pillow>=10.0.0
