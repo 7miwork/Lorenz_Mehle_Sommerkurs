@@ -13,6 +13,10 @@
 #   - idle:    Stehend / ruhig
 #   - walking: Laufend
 #   - talking: Sprechend (Mund offen)
+#
+# Bilder können auf zwei Arten erstellt werden:
+#   1. "Durchsuchen..." – eine vorhandene Datei importieren
+#   2. "Extern" – das OS-Zeichenprogramm (Paint/Freeform/GIMP) öffnen
 
 # Importiert die Tkinter-Bibliothek für GUI-Fenster
 import tkinter as tk
@@ -31,6 +35,9 @@ import shutil
 
 # Importiert os für Pfad-Operationen (Verzeichnisse prüfen, Dateinamen extrahieren)
 import os
+
+# Importiert die Hilfsfunktionen für OS-Erkennung und externes Zeichenprogramm
+from tools.drawing_helper import detect_os, get_drawing_app_name, open_in_drawing_app, create_blank_image
 
 
 # Anzeigename für Ansichten in der GUI
@@ -219,9 +226,9 @@ class CharacterEditor(tk.Toplevel):
         Der Dialog enthält:
         - Name und Beschreibung Eingabefelder
         - Für jede Ansicht (front, side_left, side_right, back):
-          ein "Durchsuchen..."-Button zum Auswählen eines Bildes
+          "Durchsuchen..." und "Extern" Buttons
         - Für jeden Bewegungs-Zustand (idle, walking, talking):
-          ein "Durchsuchen..."-Button zum Auswählen eines Bildes
+          "Durchsuchen..." und "Extern" Buttons
 
         Args:
             character_id: None für einen neuen Charakter, sonst die ID
@@ -231,7 +238,7 @@ class CharacterEditor(tk.Toplevel):
         # ---------- DIALOG-FENSTER ERSTELLEN ----------
         dialog = tk.Toplevel(self)
         dialog.title("Charakter bearbeiten" if is_edit_mode else "Neuer Charakter")
-        dialog.geometry("600x700")
+        dialog.geometry("650x750")
         dialog.transient(self)
 
         # Scrollbarer Bereich für viele Eingabefelder
@@ -259,12 +266,22 @@ class CharacterEditor(tk.Toplevel):
         desc_var = tk.StringVar()
         tk.Entry(scroll_frame, textvariable=desc_var, width=50).pack()
 
+        # OS-Info anzeigen
+        app_name = get_drawing_app_name()
+        os_name = detect_os()
+        tk.Label(
+            scroll_frame,
+            text=f"Betriebssystem: {os_name.capitalize()} – Extern öffnet {app_name}",
+            font=tk.font.Font(family="Arial", size=9, slant="italic"),
+            fg="gray"
+        ).pack(pady=(5, 10))
+
         # ---------- ANSICHTEN ----------
         tk.Label(
             scroll_frame,
             text="Ansichten (2D Figuren aus verschiedenen Richtungen):",
             font=tk.font.Font(family="Arial", size=11, weight="bold")
-        ).pack(pady=(20, 10))
+        ).pack(pady=(10, 5))
 
         # Dictionary für die Ansicht-Variablen
         view_vars = {}
@@ -279,13 +296,19 @@ class CharacterEditor(tk.Toplevel):
             frame = tk.Frame(scroll_frame)
             frame.pack()
 
-            entry = tk.Entry(frame, textvariable=view_var, width=45, state="readonly")
+            entry = tk.Entry(frame, textvariable=view_var, width=38, state="readonly")
             entry.pack(side="left", padx=(0, 5))
 
             tk.Button(
                 frame,
                 text="Durchsuchen...",
                 command=lambda vn=view_name, vv=view_var: self._select_image_file(vv, vn)
+            ).pack(side="left", padx=(0, 5))
+
+            tk.Button(
+                frame,
+                text="Extern",
+                command=lambda vn=view_name, vv=view_var: self._open_external_for_view(vv, vn)
             ).pack(side="left")
 
         # ---------- BEWEGUNGS-ZUSTÄNDE ----------
@@ -293,7 +316,7 @@ class CharacterEditor(tk.Toplevel):
             scroll_frame,
             text="Bewegungs-Zustände (Poses):",
             font=tk.font.Font(family="Arial", size=11, weight="bold")
-        ).pack(pady=(20, 10))
+        ).pack(pady=(15, 5))
 
         # Dictionary für die Pose-Variablen
         pose_vars = {}
@@ -308,13 +331,19 @@ class CharacterEditor(tk.Toplevel):
             frame = tk.Frame(scroll_frame)
             frame.pack()
 
-            entry = tk.Entry(frame, textvariable=pose_var, width=45, state="readonly")
+            entry = tk.Entry(frame, textvariable=pose_var, width=38, state="readonly")
             entry.pack(side="left", padx=(0, 5))
 
             tk.Button(
                 frame,
                 text="Durchsuchen...",
                 command=lambda pn=pose_name, pv=pose_var: self._select_image_file(pv, pn)
+            ).pack(side="left", padx=(0, 5))
+
+            tk.Button(
+                frame,
+                text="Extern",
+                command=lambda pn=pose_name, pv=pose_var: self._open_external_for_pose(pv, pn)
             ).pack(side="left")
 
         # ---------- IM BEARBEITEN-MODUS VORBELEGEN ----------
@@ -428,6 +457,84 @@ class CharacterEditor(tk.Toplevel):
 
         shutil.copy2(file_path, target_path)
         image_var.set(target_path)
+
+    def _open_external_for_view(self, image_var: tk.StringVar, view_name: str):
+        """Öffnet das externe Zeichenprogramm für eine Ansicht.
+
+        Erstellt eine leere PNG-Datei in 'assets/characters/' und öffnet sie
+        im Standard-Zeichenprogramm des Betriebssystems.
+
+        Args:
+            image_var: Die StringVar-Variable des Bildpfad-Eingabefelds.
+            view_name: Name der Ansicht (z.B. "front")
+        """
+        self._open_external_drawing(image_var, "characters", view_name)
+
+    def _open_external_for_pose(self, image_var: tk.StringVar, pose_name: str):
+        """Öffnet das externe Zeichenprogramm für einen Bewegungs-Zustand.
+
+        Erstellt eine leere PNG-Datei in 'assets/characters/' und öffnet sie
+        im Standard-Zeichenprogramm des Betriebssystems.
+
+        Args:
+            image_var: Die StringVar-Variable des Bildpfad-Eingabefelds.
+            pose_name: Name des Zustands (z.B. "idle")
+        """
+        self._open_external_drawing(image_var, "characters", pose_name)
+
+    def _open_external_drawing(self, image_var: tk.StringVar, asset_subdir: str, context: str):
+        """Allgemeine Methode zum Öffnen des externen Zeichenprogramms.
+
+        Erstellt eine leere PNG-Datei und öffnet sie im OS-Zeichenprogramm.
+        Falls bereits ein Bild gesetzt ist, wird dieses zum Bearbeiten geöffnet.
+
+        Args:
+            image_var: Die StringVar-Variable des Bildpfad-Eingabefelds.
+            asset_subdir: Unterordner in assets/ (z.B. "characters" oder "scenes")
+            context: Kontext für den Dateinamen (z.B. "front", "idle")
+        """
+        # Prüfen, ob bereits ein Bild vorhanden ist (zum Bearbeiten)
+        existing_path = image_var.get().strip()
+
+        if existing_path and os.path.exists(existing_path):
+            # Bestehendes Bild im externen Programm öffnen
+            file_to_open = existing_path
+        else:
+            # Neue leere Datei erstellen
+            import time
+            timestamp = int(time.time())
+            filename = f"{context}_{timestamp}.png"
+            target_dir = os.path.join("assets", asset_subdir)
+            file_to_open = os.path.join(target_dir, filename)
+
+            if not create_blank_image(file_to_open, 400, 400):
+                messagebox.showerror(
+                    "Fehler",
+                    "Die leere Datei konnte nicht erstellt werden."
+                )
+                return
+
+        # Pfad setzen
+        image_var.set(file_to_open)
+
+        # Externes Zeichenprogramm öffnen
+        success = open_in_drawing_app(file_to_open)
+
+        if success:
+            app_name = get_drawing_app_name()
+            messagebox.showinfo(
+                f"{app_name} geöffnet",
+                f"{app_name} wurde geöffnet und die Datei geladen:\n\n"
+                f"{file_to_open}\n\n"
+                f"Zeichne deine 2D-Figur in {app_name}, speichere die Datei,\n"
+                f"und klicke dann auf 'Speichern', um den Charakter zu übernehmen."
+            )
+        else:
+            messagebox.showerror(
+                "Fehler",
+                f"Das Zeichenprogramm konnte nicht geöffnet werden.\n"
+                f"Du kannst stattdessen 'Durchsuchen...' verwenden."
+            )
 
     def _delete_character(self):
         """Löscht den ausgewählten Charakter nach einer Bestätigung."""
