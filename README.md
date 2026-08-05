@@ -11,6 +11,16 @@ Diese Änderungen fügen die Basisarchitektur für Projekte, Sprecherordner
 und einen einfachen Audio-Recorder hinzu. Sie sind modulär gestaltet,
 sodass später BGM, SFX, Timeline und KI-Sprecher ergänzt werden können.
 
+Audio-Formate und Speicherung:
+
+- Aufnahmen (Sprecher): standardmäßig als `OGG` (Vorbis) gespeichert, um Platz zu sparen.
+- Text-to-Speech / KI-Ausgaben: vorgesehen als `OPUS`-Format (für spätere Integrationen).
+- BGM und SFX: werden als `OGG` (Vorbis) verwaltet.
+
+Die Konvertierung erfolgt lokal via `ffmpeg` (bereitgestellt durch `imageio-ffmpeg`).
+Diese Formate dienen nur der internen, platzsparenden Speicherung; für den finalen
+Export können später andere Formate (z. B. WAV/MP4) erzeugt werden.
+
 Hinweise zum Testen:
 
 1. Installiere Abhängigkeiten:

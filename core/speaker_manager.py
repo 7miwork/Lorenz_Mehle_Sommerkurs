@@ -149,6 +149,7 @@ class SpeakerManager:
         speaker_id: str,
         display_name: str,
         temp_audio_path: str,
+        target_format: str = "ogg",
     ) -> Optional[Recording]:
         """Fügt einem Sprecher eine neue Aufnahme hinzu.
 
@@ -174,7 +175,9 @@ class SpeakerManager:
             c if c.isalnum() or c in " -_" else "_"
             for c in display_name
         ).strip()
-        filename = f"{safe_name}_{timestamp}.wav"
+        # Dateiendung basierend auf gewünschtem Format
+        ext = ".ogg" if target_format == "ogg" else ".opus"
+        filename = f"{safe_name}_{timestamp}{ext}"
 
         # Relativer Pfad im Sprecherordner
         speaker_folder = self.file_manager.get_speaker_folder(
@@ -187,14 +190,19 @@ class SpeakerManager:
             self.project_folder, relative_path
         )
 
-        # Aufnahme in den Sprecherordner kopieren
-        if not self.audio_manager.save_recording(
-            temp_audio_path, absolute_path, display_name
-        ):
-            return None
+        # Aufnahme in den Sprecherordner kopieren / konvertieren
+        out_path = None
+        if target_format in ("ogg", "opus"):
+            out_path = self.audio_manager.convert_and_save(temp_audio_path, absolute_path, target_format)
+            if out_path is None:
+                return None
+        else:
+            if not self.audio_manager.save_recording(temp_audio_path, absolute_path, display_name):
+                return None
+            out_path = absolute_path
 
         # Dauer ermitteln
-        duration = self.audio_manager.get_duration(absolute_path)
+        duration = self.audio_manager.get_duration(out_path)
 
         recording = Recording(
             recording_id=recording_id,

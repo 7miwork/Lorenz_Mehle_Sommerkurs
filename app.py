@@ -117,6 +117,8 @@ class RecordStudioApp(tk.Tk):
         
         # Ruft die Methode auf, die die Benutzeroberfläche erstellt
         self._build_ui()
+        # Menubar hinzufügen (Sprecher -> Organisieren)
+        self._add_menubar()
         
         # Zeigt die geladenen Profile beim Start an
         self._show_loaded_profiles()
@@ -439,6 +441,7 @@ class RecordStudioApp(tk.Tk):
             "scene_library": self._open_scene_library_info,
             "scene_editor": self._open_scene_editor,
             "project_editor": self._open_project_editor,
+            "speaker_organizer": self._open_speaker_organizer,
         }
         
         # Hauptmenü als Tochterfenster öffnen
@@ -480,6 +483,24 @@ class RecordStudioApp(tk.Tk):
     def _open_project_editor(self):
         """Öffnet den Project Editor für Projektverwaltung, Sprecher und Audio."""
         ProjectEditor(self, self.project_manager)
+
+    def _open_speaker_organizer(self):
+        """Öffnet den Speaker Organizer für das aktuell geöffnete Projekt."""
+        # Lazy import to avoid circular issues in tests
+        from ui.speaker_organizer import SpeakerOrganizer
+        if not self.project_manager.current_project:
+            from tkinter import messagebox
+            messagebox.showwarning("Kein Projekt", "Bitte zuerst ein Projekt öffnen.")
+            return
+        SpeakerOrganizer(self, self.project_manager)
+
+    def _add_menubar(self):
+        """Ergänzt eine einfache Menüleiste mit einem Sprecher-Menü."""
+        menubar = tk.Menu(self)
+        speaker_menu = tk.Menu(menubar, tearoff=0)
+        speaker_menu.add_command(label="Organisieren", command=self._open_speaker_organizer)
+        menubar.add_cascade(label="Sprecher", menu=speaker_menu)
+        self.config(menu=menubar)
 
     def _open_scene_library_info(self):
         """Öffnet einen Informationsdialog zur Scene Library.

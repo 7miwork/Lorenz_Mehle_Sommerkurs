@@ -245,7 +245,8 @@ class ProjectEditor(tk.Toplevel):
         name = simpledialog.askstring("Aufnahme speichern", "Anzeigename der Aufnahme:")
         if not name:
             return
-        rec = self.pm.speaker_manager.add_recording(self.selected_speaker_id, name, self._last_temp)
+        # Use OGG for recordings (space efficient), OPUS reserved for TTS/export.
+        rec = self.pm.speaker_manager.add_recording(self.selected_speaker_id, name, self._last_temp, target_format="ogg")
         if rec:
             messagebox.showinfo("Gespeichert", "Aufnahme gespeichert.")
             self.save_btn.config(state="disabled")

@@ -80,6 +80,23 @@ class FileManager:
     def get_speaker_folder(self, project_folder: str, speaker_name: str) -> str:
         return os.path.join("speakers", speaker_name)
 
+    def create_speaker_structure(self, project_folder: str, speaker_name: str) -> bool:
+        """Erstellt Unterordner A-Z und einen Ordner 'saetz' für einen Sprecher."""
+        base = self.to_absolute(project_folder, self.get_speaker_folder(project_folder, speaker_name))
+        try:
+            for ch in list("ABCDEFGHIJKLMNOPQRSTUVWXYZ") + ["saetz"]:
+                os.makedirs(os.path.join(base, ch), exist_ok=True)
+            return True
+        except Exception:
+            return False
+
+    def list_speaker_folder(self, project_folder: str, speaker_name: str, subfolder: str):
+        rel = os.path.join(self.get_speaker_folder(project_folder, speaker_name), subfolder)
+        abs_folder = self.to_absolute(project_folder, rel)
+        if not os.path.isdir(abs_folder):
+            return []
+        return [f for f in os.listdir(abs_folder) if os.path.isfile(os.path.join(abs_folder, f))]
+
     # --- Path Utilities ---
     def to_absolute(self, project_folder: str, relative_path: str) -> str:
         # Normalisiere und entferne führende Slashes

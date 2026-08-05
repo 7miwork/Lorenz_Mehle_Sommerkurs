@@ -10,6 +10,13 @@ from typing import Optional
 
 import sounddevice as sd
 import numpy as np
+import subprocess
+from typing import Literal
+
+try:
+    import imageio_ffmpeg as iioff
+except Exception:
+    iioff = None
 
 
 class AudioManager:
@@ -278,3 +285,56 @@ class AudioManager:
         minutes = int((seconds % 3600) // 60)
         secs = int(seconds % 60)
         return f"{hours:02d}:{minutes:02d}:{secs:02d}"
+
+    # ---------- FORMAT KONVERTIERUNG (ffmpeg) ----------
+    def _get_ffmpeg_exe(self) -> Optional[str]:
+        """Gibt den Pfad zur ffmpeg-Executable zurück, falls verfügbar."""
+        if iioff is not None:
+            try:
+                return iioff.get_ffmpeg_exe()
+            except Exception:
+                return None
+        return None
+
+    def convert_to_format(self, input_wav: str, output_path: str, fmt: Literal["ogg", "opus"]) -> bool:
+        """Konvertiert eine WAV-Datei in OGG Vorbis oder OPUS mithilfe von ffmpeg.
+
+        Args:
+            input_wav: Pfad zur Quell-WAV
+            output_path: Zieldatei (vollständiger Pfad)
+            fmt: "ogg" oder "opus"
+
+        Returns:
+            True wenn erfolgreich
+        """
+        ffmpeg = self._get_ffmpeg_exe()
+        if ffmpeg is None:
+            print("ffmpeg executable not found (imageio-ffmpeg missing)")
+            return False
+
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+        if fmt == "ogg":
+            args = [ffmpeg, "-y", "-i", input_wav, "-c:a", "libvorbis", "-q:a", "4", output_path]
+        else:  # opus
+            args = [ffmpeg, "-y", "-i", input_wav, "-c:a", "libopus", "-b:a", "64k", output_path]
+
+        try:
+            subprocess.check_call(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            return True
+        except Exception as e:
+            print(f"Fehler bei der Konvertierung: {e}")
+            return False
+
+    def convert_and_save(self, input_wav: str, target_abs_path: str, fmt: Literal["ogg", "opus"]) -> Optional[str]:
+        """Konvertiert `input_wav` in das gewünschte Format und speichert es als `target_abs_path`.
+
+        Wenn `fmt` ist 'ogg' oder 'opus', die Datei wird entsprechend konvertiert.
+        """
+        # Bestimme Zieldateiendung
+        base, _ = os.path.splitext(target_abs_path)
+        ext = ".ogg" if fmt == "ogg" else ".opus"
+        out_path = base + ext
+
+        success = self.convert_to_format(input_wav, out_path, fmt)
+        return out_path if success else None

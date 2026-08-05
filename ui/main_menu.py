@@ -133,6 +133,15 @@ class MainMenu(tk.Toplevel):
             width=btn_width
         ).pack(pady=8)
 
+        # 7. Sprecher Organizer
+        tk.Button(
+            button_frame,
+            text="7. Sprecher organisieren",
+            command=self._open("speaker_organizer"),
+            font=btn_font,
+            width=btn_width
+        ).pack(pady=8)
+
         # ---------- SCHLIESSEN-BUTTON ----------
         tk.Button(
             self,
