@@ -1,5 +1,33 @@
 # Record Studio
 
+## Änderungen (neu)
+
+- `core/file_manager.py` — neues Modul für Projekt- und Dateisystem-Operationen.
+- `core/project_manager.py` — neues Modul zum Erstellen, Öffnen und Speichern von Projekten.
+- `ui/project_editor.py` — einfacher Tkinter-Editor zur Verwaltung von Projekten, Sprechern und Aufnahmen.
+- `requirements.txt` — hinzugefügt: `sounddevice`, `numpy`.
+
+Diese Änderungen fügen die Basisarchitektur für Projekte, Sprecherordner
+und einen einfachen Audio-Recorder hinzu. Sie sind modulär gestaltet,
+sodass später BGM, SFX, Timeline und KI-Sprecher ergänzt werden können.
+
+Hinweise zum Testen:
+
+1. Installiere Abhängigkeiten:
+
+```powershell
+python -m pip install -r requirements.txt
+```
+
+2. Starte die App:
+
+```powershell
+python app.py
+```
+
+3. Öffne `Projekt Editor` → erstelle ein Projekt → füge Sprecher hinzu →
+	wähle einen Sprecher → starte Aufnahme → Stop → Speichern.
+
 Record Studio ist ein Werkzeug zum Erstellen von animierten Sprecher-Szenen mit Audioaufnahme, Timeline und Videoexport.
 
 ## Funktionen

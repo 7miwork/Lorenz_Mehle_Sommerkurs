@@ -45,7 +45,7 @@ class MainMenu(tk.Toplevel):
         self.title("Record Studio – Hauptmenü")
 
         # Fenstergröße
-        self.geometry("420x520")
+        self.geometry("420x580")
 
         # Als Tochterfenster des Hauptfensters
         self.transient(parent)
@@ -120,6 +120,15 @@ class MainMenu(tk.Toplevel):
             button_frame,
             text="5. Scene Editor",
             command=self._open("scene_editor"),
+            font=btn_font,
+            width=btn_width
+        ).pack(pady=8)
+
+        # 6. Projekt Editor (Sprecher, Audio, BGM, SFX)
+        tk.Button(
+            button_frame,
+            text="6. Projekt Editor",
+            command=self._open("project_editor"),
             font=btn_font,
             width=btn_width
         ).pack(pady=8)

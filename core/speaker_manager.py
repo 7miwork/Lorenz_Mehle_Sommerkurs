@@ -4,6 +4,7 @@
 
 import os
 import time
+from datetime import datetime
 from typing import List, Optional
 
 from core.speaker import Speaker, Recording
@@ -228,7 +229,7 @@ class SpeakerManager:
             return False
 
         recording.display_name = new_name
-        recording.modified_at = __import__("datetime").datetime.now().isoformat()
+        recording.modified_at = datetime.now().isoformat()
         return True
 
     def delete_recording(self, speaker_id: str, recording_id: str) -> bool:

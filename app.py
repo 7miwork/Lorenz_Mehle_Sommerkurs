@@ -22,8 +22,66 @@ from ui.character_editor import CharacterEditor
 # Importiert den SceneEditor für die grafische Szenen-Verwaltung
 from ui.scene_editor import SceneEditor
 
+# Importiert den ProjectEditor für Projektverwaltung, Sprecher und Audio
+from ui.project_editor import ProjectEditor
+
 # Importiert das Hauptmenü, das nach der Anmeldung erscheint
 from ui.main_menu import MainMenu
+
+# Importiert die Manager für Projekte, Dateien und Audio
+import subprocess
+import sys
+
+
+def _ensure_dependencies() -> bool:
+    """Prüft und installiert fehlende Abhängigkeiten (sounddevice, numpy).
+
+    Wenn Pakete fehlen, fragt die Funktion den Benutzer, ob sie installiert
+    werden sollen. Bei erfolgreicher Installation muss die Anwendung neu
+    gestartet werden; die Funktion gibt False zurück, damit der Start abgebrochen
+    werden kann.
+    """
+    required = ["sounddevice", "numpy"]
+    missing = []
+    for pkg in required:
+        try:
+            __import__(pkg)
+        except Exception:
+            missing.append(pkg)
+
+    if not missing:
+        return True
+
+    # Zeige Dialog an und biete Installation an
+    from tkinter import messagebox
+    root = tk.Tk()
+    root.withdraw()
+    msg = f"Fehlende Python-Pakete: {', '.join(missing)}.\nMöchtest du sie jetzt installieren?"
+    if not messagebox.askyesno("Abhängigkeiten fehlen", msg):
+        root.destroy()
+        return False
+
+    try:
+        cmd = [sys.executable, "-m", "pip", "install"] + missing
+        subprocess.check_call(cmd)
+        messagebox.showinfo("Installation abgeschlossen", "Pakete wurden installiert. Bitte starte die Anwendung neu.")
+        root.destroy()
+        return False
+    except Exception as e:
+        messagebox.showerror("Installation fehlgeschlagen", f"Fehler beim Installieren: {e}")
+        root.destroy()
+        return False
+
+
+# Prüfe Abhängigkeiten vor weiteren Imports
+if not _ensure_dependencies():
+    # Abbruch: User soll die App neu starten nachdem Pakete installiert wurden
+    sys.exit(1)
+
+# Manager-Importe, nach Abhängigkeitsprüfung
+from core.project_manager import ProjectManager
+from core.file_manager import FileManager
+from core.audio_manager import AudioManager
 
 
 class RecordStudioApp(tk.Tk):
@@ -46,6 +104,11 @@ class RecordStudioApp(tk.Tk):
         
         # Initialisiert die Szenen-Bibliothek
         self.scene_library = SceneLibrary()
+
+        # Initialisiert die Manager für Projekte, Dateien und Audio
+        self.file_manager = FileManager()
+        self.audio_manager = AudioManager()
+        self.project_manager = ProjectManager(self.file_manager, self.audio_manager)
         
         # Setzt den Titel des Fensters (erscheint in der Titelleiste)
         self.title("Record Studio")
@@ -381,6 +444,7 @@ class RecordStudioApp(tk.Tk):
             "char_editor": self._open_character_editor,
             "scene_library": self._open_scene_library_info,
             "scene_editor": self._open_scene_editor,
+            "project_editor": self._open_project_editor,
         }
         
         # Hauptmenü als Tochterfenster öffnen
@@ -419,6 +483,10 @@ class RecordStudioApp(tk.Tk):
             f"erstellen, bearbeiten und löschen."
         )
     
+    def _open_project_editor(self):
+        """Öffnet den Project Editor für Projektverwaltung, Sprecher und Audio."""
+        ProjectEditor(self, self.project_manager)
+
     def _open_scene_library_info(self):
         """Öffnet einen Informationsdialog zur Scene Library.
         

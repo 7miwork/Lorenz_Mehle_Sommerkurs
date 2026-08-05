@@ -5,5 +5,13 @@
 # - Speichern von Zeichnungen als PNG im Scene Editor
 # - Zukünftige Bild-Manipulation für Charaktere und Szenen
 Pillow>=10.0.0
-sounddevice>=0.4.7
-numpy>=1.25.0
+
+# sounddevice wird für die Audioaufnahme verwendet:
+# - Aufnahme über das Mikrofon
+# - Wiedergabe von WAV-Dateien
+sounddevice>=0.4.6
+
+# numpy wird für die Audio-Datenverarbeitung verwendet:
+# - Zusammenfügen der Audio-Frames
+# - Konvertierung der Audiodaten
+numpy>=1.24.0
