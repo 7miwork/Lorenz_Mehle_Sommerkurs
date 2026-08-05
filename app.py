@@ -31,15 +31,18 @@ from ui.main_menu import MainMenu
 # Importiert die Manager für Projekte, Dateien und Audio
 import subprocess
 import sys
+import os
 
 
 def _ensure_dependencies() -> bool:
-    """Prüft und installiert fehlende Abhängigkeiten (sounddevice, numpy).
+    """Prüft fehlende Pakete, installiert sie still und startet die App neu.
 
-    Wenn Pakete fehlen, fragt die Funktion den Benutzer, ob sie installiert
-    werden sollen. Bei erfolgreicher Installation muss die Anwendung neu
-    gestartet werden; die Funktion gibt False zurück, damit der Start abgebrochen
-    werden kann.
+    Verhalten:
+    - Wenn Pakete fehlen, wird `pip install <missing...>` still (stdout/stderr -> DEVNULL)
+      ausgeführt.
+    - Bei erfolgreicher Installation wird der aktuelle Python-Prozess durch einen
+      Neustart (`os.execv`) ersetzt, so dass die neuen Pakete sofort verfügbar sind.
+    - Bei Installationsfehlern kehrt die Funktion mit False zurück.
     """
     required = ["sounddevice", "numpy"]
     missing = []
@@ -52,30 +55,21 @@ def _ensure_dependencies() -> bool:
     if not missing:
         return True
 
-    # Zeige Dialog an und biete Installation an
-    from tkinter import messagebox
-    root = tk.Tk()
-    root.withdraw()
-    msg = f"Fehlende Python-Pakete: {', '.join(missing)}.\nMöchtest du sie jetzt installieren?"
-    if not messagebox.askyesno("Abhängigkeiten fehlen", msg):
-        root.destroy()
-        return False
-
+    # Versuche stille Installation der fehlenden Pakete
     try:
         cmd = [sys.executable, "-m", "pip", "install"] + missing
-        subprocess.check_call(cmd)
-        messagebox.showinfo("Installation abgeschlossen", "Pakete wurden installiert. Bitte starte die Anwendung neu.")
-        root.destroy()
-        return False
-    except Exception as e:
-        messagebox.showerror("Installation fehlgeschlagen", f"Fehler beim Installieren: {e}")
-        root.destroy()
+        with open(os.devnull, "wb") as devnull:
+            subprocess.check_call(cmd, stdout=devnull, stderr=devnull)
+
+        # Nach erfolgreicher Installation App neu starten (ersetze Prozess)
+        os.execv(sys.executable, [sys.executable] + sys.argv)
+    except Exception:
+        # Installation fehlgeschlagen
         return False
 
 
 # Prüfe Abhängigkeiten vor weiteren Imports
 if not _ensure_dependencies():
-    # Abbruch: User soll die App neu starten nachdem Pakete installiert wurden
     sys.exit(1)
 
 # Manager-Importe, nach Abhängigkeitsprüfung
