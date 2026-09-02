@@ -23,6 +23,8 @@ import tkinter as tk
 # Importiert das ttk-Modul für erweiterte Widgets (Treeview), messagebox für Dialoge
 # und filedialog für Dateiauswahl-Dialoge
 from tkinter import ttk, messagebox, filedialog
+# tkinter.font muss explizit importiert werden, damit tk.font.* funktioniert
+import tkinter.font
 
 # Importiert die CharacterLibrary für CRUD-Operationen auf Charakteren
 from core.character_library import CharacterLibrary
@@ -56,11 +58,11 @@ POSE_LABELS = {
 }
 
 
-class CharacterEditor(tk.Toplevel):
+class CharacterEditor(tk.Frame):
     """Grafischer Editor für die Character Library.
 
-    Erbt von tk.Toplevel, um ein eigenständiges Fenster zu erzeugen,
-    das als Kind des Hauptfensters (RecordStudioApp) erscheint.
+    Erbt von tk.Frame, damit er als Ansicht im Hauptfenster
+    (content_frame) eingebettet werden kann.
 
     Die Klasse zeigt alle Charaktere in einer ttk.Treeview-Liste an
     und bietet drei Aktionen: Neu erstellen, Bearbeiten und Löschen.
@@ -79,7 +81,7 @@ class CharacterEditor(tk.Toplevel):
             parent: Elternfenster (RecordStudioApp-Instanz)
             character_library: CharacterLibrary-Instanz für CRUD-Operationen
         """
-        # Ruft den Konstruktor der Elternklasse (tk.Toplevel) auf
+        # Ruft den Konstruktor der Elternklasse (tk.Frame) auf
         super().__init__(parent)
 
         # Referenz auf die CharacterLibrary speichern, um später CRUD-Operationen auszuführen
@@ -89,13 +91,11 @@ class CharacterEditor(tk.Toplevel):
         self.selected_character_id = None
 
         # Fenster-Titel festlegen (erscheint in der Titelleiste)
-        self.title("Charaktere verwalten – 2D Figuren")
+        # (character_editor.py: Frame besitzt kein title() – Zeile entfernt)
         # Fenstergröße festlegen: 700 Pixel breit, 450 Pixel hoch
-        self.geometry("700x450")
-        # Das Fenster als Tochter des Hauptfensters kennzeichnen (transient)
-        self.transient(parent)
+        # (character_editor.py: Frame besitzt kein geometry() – Zeile entfernt)
 
-        # Die Benutzeroberfläche erstellen (Treeview, Buttons, Schließen-Button)
+        # Die Benutzeroberfläche erstellen
         self._build_ui()
 
         # Die Liste der Charaktere beim Start initial befüllen

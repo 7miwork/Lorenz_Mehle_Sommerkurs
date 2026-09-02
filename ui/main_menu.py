@@ -142,23 +142,26 @@ class MainMenu(tk.Toplevel):
             width=btn_width
         ).pack(pady=8)
 
-        # ---------- SCHLIESSEN-BUTTON ----------
+        # 8. Globale Sprecher-Datenbank
         tk.Button(
-            self,
-            text="Schließen",
-            command=self.destroy,
-            font=font.Font(family="Arial", size=10)
-        ).pack(pady=20)
+            button_frame,
+            text="8. Speaker Datenbank",
+            command=self._open("speaker_database"),
+            font=btn_font,
+            width=btn_width
+        ).pack(pady=8)
 
-    def _open(self, area: str):
-        """Gibt eine Callback-Funktion zurück, die den Bereich öffnet.
+        # 9. Globale Timeline
+        tk.Button(
+            button_frame,
+            text="9. Timeline verwalten",
+            command=self._open("timeline_editor"),
+            font=btn_font,
+            width=btn_width
+        ).pack(pady=8)
 
-        Args:
-            area: Schlüssel im callbacks-Dictionary
-
-        Returns:
-            Eine Funktion, die beim Klick auf den Button ausgeführt wird
-        """
+    def _open(self, area):
+        """Gibt einen Handler zurück, der den Callback für den angegebenen Bereich aufruft."""
         def handler():
             callback = self.callbacks.get(area)
             if callback:

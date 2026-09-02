@@ -1,105 +1,126 @@
 # Record Studio
 
-## Änderungen (neu)
+Record Studio ist eine Tkinter-basierte App für Lehrzwecke zur Verwaltung von Sprecher-Projekten, Szenen, Charakteren und Audioaufnahmen.
 
-- `core/file_manager.py` — neues Modul für Projekt- und Dateisystem-Operationen.
-- `core/project_manager.py` — neues Modul zum Erstellen, Öffnen und Speichern von Projekten.
-- `ui/project_editor.py` — einfacher Tkinter-Editor zur Verwaltung von Projekten, Sprechern und Aufnahmen.
-- `requirements.txt` — hinzugefügt: `sounddevice`, `numpy`.
+## Aktueller Stand
 
-Diese Änderungen fügen die Basisarchitektur für Projekte, Sprecherordner
-und einen einfachen Audio-Recorder hinzu. Sie sind modulär gestaltet,
-sodass später BGM, SFX, Timeline und KI-Sprecher ergänzt werden können.
+- Ein Hauptfenster mit linker Navigation und rechtem Inhaltspanel.
+- Benutzerprofile, die als Einstieg in die Anwendung dienen.
+- Charakterverwaltung mit `CharacterEditor`.
+- Szenenverwaltung mit `SceneEditor`.
+- Projektverwaltung inkl. Sprecher, Aufnahme- und Speicherfunktionen mit `ProjectEditor`.
+- Projektbezogene Sprecherorganisation mit `SpeakerOrganizer`.
+- Globale Sprecher-Datenbank mit `SpeakerDatabaseEditor`.
+- Globale Timeline-Verwaltung mit `TimelineEditor`.
+- Projekt- und Dateisystemlogik in `core/file_manager.py` und `core/project_manager.py`.
+- Persistente globale Speaker- und Timeline-Daten in `core/speaker_library.py` und `core/timeline_library.py`.
 
-Audio-Formate und Speicherung:
+## Was die App jetzt kann
 
-- Aufnahmen (Sprecher): standardmäßig als `OGG` (Vorbis) gespeichert, um Platz zu sparen.
-- Text-to-Speech / KI-Ausgaben: vorgesehen als `OPUS`-Format (für spätere Integrationen).
-- BGM und SFX: werden als `OGG` (Vorbis) verwaltet.
+- Login / Profilwahl und Profilverwaltung
+- Selektion über linke Navigation
+- Charakterliste anzeigen, bearbeiten und löschen
+- Szenenliste anzeigen, bearbeiten und löschen
+- Projekt erstellen, öffnen und speichern
+- Projekt-spezifische Sprecher erstellen und verwalten
+- Audioaufnahme für Projektsprecher starten, stoppen und speichern
+- Globale Sprecher-Datenbank bearbeiten
+- Globale Timeline-Einträge erstellen, bearbeiten und löschen
 
-Die Konvertierung erfolgt lokal via `ffmpeg` (bereitgestellt durch `imageio-ffmpeg`).
-Diese Formate dienen nur der internen, platzsparenden Speicherung; für den finalen
-Export können später andere Formate (z. B. WAV/MP4) erzeugt werden.
+## Aktuelle Funktionen
 
-Hinweise zum Testen:
+- [x] Ein einzelnes Hauptfenster mit Navigation
+- [x] Benutzerprofile
+- [x] Charakterverwaltung
+- [x] Szenenverwaltung
+- [x] Projektverwaltung
+- [x] Projekt-spezifische Sprecherverwaltung
+- [x] Audio Recorder / Aufnahme speichern
+- [x] Globale Sprecher-Datenbank
+- [x] Globale Timeline-Verwaltung
+- [ ] Video Export
+- [ ] Lippensynchronisation
+- [ ] Upload-Funktionen
 
-1. Installiere Abhängigkeiten:
+## Installation
+
+1. Python 3.x installieren
+2. Abhängigkeiten installieren:
 
 ```powershell
 python -m pip install -r requirements.txt
 ```
 
-2. Starte die App:
+3. App starten:
 
 ```powershell
 python app.py
 ```
 
-3. Öffne `Projekt Editor` → erstelle ein Projekt → füge Sprecher hinzu →
-	wähle einen Sprecher → starte Aufnahme → Stop → Speichern.
-
-Record Studio ist ein Werkzeug zum Erstellen von animierten Sprecher-Szenen mit Audioaufnahme, Timeline und Videoexport.
-
-## Funktionen
-
-- [x] Grundgerüst der Anwendung (Tkinter-Hauptfenster)
-- [x] Benutzerprofile
-- [x] Character Library
-- [x] Character Editor
-- [x] Scene Library
-- [x] Scene Editor
-- [ ] Audio Recorder
-- [ ] Mehrere Sprecher
-- [ ] Timeline
-- [ ] Projektverwaltung
-- [ ] Vorschau
-- [ ] Video Export
-- [ ] Lippensynchronisation
-- [ ] Upload-Funktionen
-
 ## Projektstruktur
 
 ```
-Z:\Codes\Unterricht\Lorenz Mehle\Sommerkurs
-├── assets
-│   ├── characters
-│   ├── scenes
-│   ├── objects
-│   ├── audio
-│   ├── music
-│   ├── icons
-│   └── fonts
-├── core
-├── ui
-├── projects
-├── profiles
-├── exports
-├── teacher
-├── student
-├── docs
-└── tools
+Sommerkurs/
+├── assets/
+├── core/
+│   ├── audio_manager.py
+│   ├── file_manager.py
+│   ├── project_manager.py
+│   ├── speaker_library.py
+│   └── timeline_library.py
+├── docs/
+├── exports/
+├── profiles/
+│   └── profile_manager.py
+├── projects/
+├── tools/
+├── ui/
+│   ├── character_editor.py
+   ├── main_menu.py
+   ├── project_editor.py
+   ├── scene_editor.py
+   ├── speaker_database.py
+   ├── speaker_organizer.py
+   └── timeline_editor.py
+├── app.py
+└── requirements.txt
 ```
 
-## Screenshots
+## Bedienung
 
-*(Screenshots werden nach jeder Unterrichtsstunde ergänzt.)*
+1. Starte `python app.py`.
+2. Wähle ein Profil oder lege ein neues Profil an.
+3. Verwende die linke Navigation, um den aktuellen Bereich zu wechseln:
+   - `Profile`: Anmeldung / Profilverwaltung
+   - `Charaktere verwalten`: Charakterliste anzeigen, bearbeiten, löschen
+   - `Szenen verwalten`: Szenenliste anzeigen, bearbeiten, löschen
+   - `Projekte & Aufnahme`: Projektverwaltung, Sprecherliste und Audioaufnahme
+   - `Sprecher organisieren`: Projektbezogene Speaker bearbeiten und Textdateien verwalten
+   - `Speaker Datenbank`: Globale Sprecherdatenbank bearbeiten
+   - `Timeline verwalten`: Globale Timeline-Einträge erstellen, bearbeiten, löschen
+4. In Projekten kannst du Sprecher anlegen, aufnehmen und speichern.
+5. In der globalen Datenbank kannst du Sprecher und Timeline-Einträge zentral verwalten.
 
-## Verlauf der Unterrichtsstunden
+## Navigation im Hauptfenster
 
-| Stunde | Titel | Was wurde gelernt |
-|--------|-------|-------------------|
-| 1 | Projekt erstellen | Tkinter-Grundgerüst, Projektstruktur, Standard-Guard, main()-Funktion |
-| 2 | Benutzerprofile | Code lesen, Debugging, Fehlersuche in bestehender Implementierung |
-| 3 | Character Library | Character-Klasse, CharacterLibrary-Manager, JSON-Persistenz |
-| 4 | Character Editor | Treeview, Toplevel-Dialoge, CRUD-Operationen in der GUI |
-| 5 | Scene Library & Scene Editor | Scene-Klasse, SceneLibrary-Manager, SceneEditor-GUI, Hauptmenü nach Anmeldung, 2D-Charaktere mit Ansichten & Bewegungen, Zeichen-Canvas für Landschaften |
+- Links: Hauptnavigation mit allen Bereichen.
+- Rechts: Inhalte des aktuell ausgewählten Bereichs.
+- Nach der Profilanmeldung wird die Navigation freigeschaltet.
+- Jeder Bereich bleibt im selben Fenster, es werden keine neuen Popup-Fenster mehr geöffnet.
 
-## Installation
+## Hinweise
 
-1. Python 3.x installieren
-2. Abhängigkeiten installieren: `pip install -r requirements.txt`
-3. Anwendung starten: `python app.py`
+- Die GUI verwendet Tkinter und läuft lokal unter Windows.
+- Audioaufnahmen nutzen `sounddevice` und speichern standardmäßig als OGG.
+- Die App kann später um Exportfunktionen und KI-gesteuertes Text-zu-Sprache erweitert werden.
+
+## Abhängigkeiten
+
+- Pillow
+- sounddevice
+- numpy
+- imageio-ffmpeg
 
 ## Nächster Schritt
 
-In Stunde 6 kommt der Audio Recorder hinzu – damit können Sprecher ihre Stimme aufnehmen und der Szene zuordnen.
+Die nächste Erweiterung wäre ein direkter Export bzw. eine Vorschau-Funktion, um erzeugte Projekte als Video oder animierte Sequenz auszugeben.

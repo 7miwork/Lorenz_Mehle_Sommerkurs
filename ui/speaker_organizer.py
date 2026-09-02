@@ -10,15 +10,11 @@ from tkinter import simpledialog, messagebox, ttk
 import os
 
 
-class SpeakerOrganizer(tk.Toplevel):
+class SpeakerOrganizer(tk.Frame):
     def __init__(self, parent, project_manager):
         super().__init__(parent)
         self.parent = parent
         self.pm = project_manager
-        self.title("Sprecher organisieren")
-        self.geometry("600x400")
-        self.transient(parent)
-
         self._build_ui()
         self._refresh()
 

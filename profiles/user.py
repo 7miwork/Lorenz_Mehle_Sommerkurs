@@ -23,12 +23,14 @@ class User:
         self,
         user_id: str,
         name: str,
-        email: str,
-        role: str = "student",
+        email: str = "",
+        role: str = "admin",
         preferences: Optional[Dict[str, Any]] = None
     ):
         self.user_id = user_id
         self.name = name
+        # E-Mail und Rolle werden aktuell nicht mehr aktiv genutzt:
+        # E-Mail bleibt leer, jeder neue Benutzer bekommt automatisch "admin".
         self.email = email
         self.role = role  # "student", "teacher", oder "admin"
         self.created_at = datetime.now().isoformat()

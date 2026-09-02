@@ -61,16 +61,17 @@ class ProfileManager:
     def create_user(
         self,
         name: str,
-        email: str,
-        role: str = "student"
+        email: str = "",
+        role: str = "admin"
     ) -> User:
         """Erstellt einen neuen Benutzer.
-        
+
+        E-Mail und Rolle werden aktuell nicht mehr abgefragt:
+        E-Mail bleibt leer, jeder neue Benutzer ist automatisch Admin.
+
         Args:
             name: Name des Benutzers
-            email: E-Mail-Adresse
-            role: Rolle (student, teacher, admin)
-            
+
         Returns:
             Neuer User-Objekt
         """

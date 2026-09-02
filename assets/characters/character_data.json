@@ -1,21 +1,21 @@
 {
     "characters": [
         {
-            "character_id": "hero_1784736722",
-            "name": "Hero",
-            "description": "unser held",
-            "views": {},
-            "poses": {},
-            "created_at": "2026-07-23T00:12:02.668597"
-        },
-        {
             "character_id": "insel_1_1784738404",
             "name": "insel 1",
             "description": "insel",
             "views": {},
             "poses": {},
             "created_at": "2026-07-23T00:40:04.772957"
+        },
+        {
+            "character_id": "hero_1784736722",
+            "name": "Hero",
+            "description": "",
+            "views": {},
+            "poses": {},
+            "created_at": "2026-07-22T22:52:02"
         }
     ],
-    "last_updated": "2026-07-29T23:49:19.418749"
+    "last_updated": "2026-09-02T23:52:30.000000"
 }

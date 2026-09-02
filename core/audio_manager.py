@@ -46,13 +46,36 @@ class AudioManager:
 
     # ---------- AUFNAHME ----------
 
+    def has_input_device(self) -> bool:
+        """Prüft, ob ein Mikrofon/Eingabegerät verfügbar ist.
+
+        Returns:
+            True wenn ein Eingabegerät gefunden wurde
+        """
+        try:
+            dev = sd.default.device
+            # sd.default.device kann ein Int oder (input, output) Tuple sein
+            input_idx = dev[0] if isinstance(dev, (list, tuple)) else dev
+            if input_idx is None or input_idx < 0:
+                return False
+            info = sd.query_devices(input_idx)
+            return info.get("max_input_channels", 0) > 0
+        except Exception:
+            return False
+
     def start_recording(self) -> bool:
         """Startet eine neue Aufnahme.
 
         Returns:
-            True wenn die Aufnahme gestartet wurde
+            True wenn die Aufnahme gestartet wurde, False wenn
+            kein Eingabegerät verfügbar ist oder schon aufgenommen wird
         """
         if self._recording:
+            return False
+
+        # Graceful: ohne Mikrofon gar nicht erst starten
+        if not self.has_input_device():
+            print("Fehler: Kein Mikrofon/Eingabegerät gefunden.")
             return False
 
         self._recording = True

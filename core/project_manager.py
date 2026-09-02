@@ -42,15 +42,23 @@ class ProjectManager:
             project = Project.from_dict(data)
         else:
             # Fallback: create a minimal Project instance
+            data = {}
             project = Project(project_id=f"proj_{int(time.time())}", name=folder_name, folder_name=folder_name)
 
         self.current_project = project
         # SpeakerManager für dieses Projekt erstellen
         self.speaker_manager = SpeakerManager(project.folder_name, self.file_manager, self.audio_manager)
+        # Gespeicherte Sprecher aus der project.json laden
+        if isinstance(data, dict) and data.get("speakers"):
+            self.speaker_manager.from_dict(data["speakers"])
         return project
 
     def save_project(self) -> bool:
         if not self.current_project:
             return False
         self.current_project.modified_at = time.ctime()
-        return self.file_manager.write_json(self.current_project.folder_name, "project.json", self.current_project.to_dict())
+        data = self.current_project.to_dict()
+        # Sprecher (inkl. Aufnahmen) mit in die project.json schreiben
+        if self.speaker_manager is not None:
+            data["speakers"] = self.speaker_manager.to_dict()
+        return self.file_manager.write_json(self.current_project.folder_name, "project.json", data)

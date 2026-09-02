@@ -12,6 +12,8 @@ import tkinter as tk
 # Importiert das ttk-Modul für erweiterte Widgets (Treeview), messagebox für Dialoge
 # und filedialog für Dateiauswahl-Dialoge
 from tkinter import ttk, messagebox, filedialog
+# tkinter.font muss explizit importiert werden, damit tk.font.* funktioniert
+import tkinter.font
 
 # Importiert die SceneLibrary für CRUD-Operationen auf Szenen
 from core.scene_library import SceneLibrary
@@ -26,10 +28,11 @@ import os
 from PIL import Image, ImageDraw, ImageTk
 
 
-class SceneEditor(tk.Toplevel):
+class SceneEditor(tk.Frame):
     """Grafischer Editor für die Scene Library.
 
-    Erbt von tk.Toplevel, um ein eigenständiges Fenster zu erzeugen.
+    Erbt von tk.Frame, damit er als Ansicht im Hauptfenster
+    (content_frame) eingebettet werden kann.
 
     Die Klasse zeigt alle Szenen in einer ttk.Treeview-Liste an
     und bietet drei Aktionen: Neu erstellen, Bearbeiten und Löschen.
@@ -50,10 +53,6 @@ class SceneEditor(tk.Toplevel):
 
         self.scene_library = scene_library
         self.selected_scene_id = None
-
-        self.title("Szenen verwalten – Landschaften")
-        self.geometry("700x450")
-        self.transient(parent)
 
         self._build_ui()
         self._refresh_list()

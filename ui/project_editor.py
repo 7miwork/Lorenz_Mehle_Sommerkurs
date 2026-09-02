@@ -11,15 +11,11 @@ from tkinter import ttk, simpledialog, messagebox
 from typing import Optional
 
 
-class ProjectEditor(tk.Toplevel):
+class ProjectEditor(tk.Frame):
     def __init__(self, parent, project_manager):
         super().__init__(parent)
         self.parent = parent
         self.pm = project_manager
-        self.title("Projekt Editor")
-        self.geometry("900x600")
-        self.transient(parent)
-
         self.selected_project: Optional[str] = None
         self.selected_speaker_id: Optional[str] = None
 
@@ -197,6 +193,14 @@ class ProjectEditor(tk.Toplevel):
             self.start_btn.config(state="disabled")
             self.pause_btn.config(state="normal")
             self.stop_btn.config(state="normal")
+        else:
+            # Graceful: verständliche Meldung statt Absturz
+            messagebox.showerror(
+                "Aufnahme nicht möglich",
+                "Die Aufnahme konnte nicht gestartet werden.\n\n"
+                "Mögliche Ursache: Es wurde kein Mikrofon/Eingabegerät gefunden.\n"
+                "Bitte schließe ein Mikrofon an und versuche es erneut."
+            )
 
     def _pause(self):
         am = self.pm.audio_manager
