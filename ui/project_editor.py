@@ -12,10 +12,13 @@ from typing import Optional
 
 
 class ProjectEditor(tk.Frame):
-    def __init__(self, parent, project_manager):
+    def __init__(self, parent, project_manager, speaker_library=None):
         super().__init__(parent)
         self.parent = parent
         self.pm = project_manager
+        # Globale Sprecher-Datenbank: Projekte nutzen vorhandene Sprecher,
+        # statt eigene, unabhängige Kopien anzulegen
+        self.speaker_library = speaker_library
         self.selected_project: Optional[str] = None
         self.selected_speaker_id: Optional[str] = None
 
@@ -140,11 +143,99 @@ class ProjectEditor(tk.Frame):
         if not self.pm.current_project:
             messagebox.showwarning("Hinweis", "Kein geöffnetes Projekt.")
             return
-        name = simpledialog.askstring("Sprecher hinzufügen", "Anzeigename:")
-        if not name:
+        if not self.speaker_library:
+            messagebox.showerror(
+                "Fehler", "Die globale Sprecher-Datenbank ist nicht verfügbar."
+            )
             return
-        sp = self.pm.speaker_manager.create_speaker(display_name=name)
+        # Globalen Sprecher auswählen (ohne Duplikat im Projekt zu erzeugen)
+        global_speaker = self._select_global_speaker()
+        if global_speaker is None:
+            return
+
+        # Prüfen, ob der Sprecher schon im Projekt vorhanden ist
+        for existing in self.pm.speaker_manager.get_all_speakers():
+            if existing.speaker_id == global_speaker.speaker_id:
+                messagebox.showinfo(
+                    "Schon vorhanden",
+                    f"'{global_speaker.display_name}' ist bereits in diesem Projekt."
+                )
+                return
+
+        # Sprecher mit derselben stabilen ID wie in der globalen Datenbank anlegen
+        self.pm.speaker_manager.create_speaker(
+            display_name=global_speaker.display_name,
+            speaker_id=global_speaker.speaker_id,
+        )
         self._refresh_speakers()
+
+    def _select_global_speaker(self):
+        """Zeigt einen Dialog zur Auswahl eines globalen Sprechers.
+
+        Bietet zusätzlich die Möglichkeit, direkt einen neuen globalen
+        Sprecher anzulegen (die globale Datenbank ist unabhängig vom Projekt).
+
+        Returns:
+            Der gewählte globale Speaker oder None bei Abbruch
+        """
+        dialog = tk.Toplevel(self)
+        dialog.title("Sprecher auswählen")
+        dialog.geometry("380x160")
+        dialog.transient(self)
+        dialog.grab_set()
+
+        result = {"speaker": None}
+
+        tk.Label(dialog, text="Globale Sprecher-Datenbank").pack(pady=(12, 6))
+        name_var = tk.StringVar()
+        combo = ttk.Combobox(dialog, textvariable=name_var, state="readonly", width=28)
+
+        def refresh_names():
+            speakers = self.speaker_library.get_all_speakers()
+            combo['values'] = [s.display_name for s in speakers]
+            if speakers:
+                combo.current(0)
+
+        refresh_names()
+        combo.pack(pady=4)
+
+        def add_new_global():
+            """Legt einen neuen globalen Sprecher an und wählt ihn aus."""
+            name = simpledialog.askstring(
+                "Neuer globaler Sprecher", "Name des Sprechers:", parent=dialog
+            )
+            if not name or not name.strip():
+                return
+            name = name.strip()
+            # Keine doppelten Namen in der globalen Datenbank
+            for speaker in self.speaker_library.get_all_speakers():
+                if speaker.display_name == name:
+                    messagebox.showwarning(
+                        "Schon vorhanden",
+                        f"Einen Sprecher '{name}' gibt es bereits global."
+                    )
+                    return
+            new_speaker = self.speaker_library.create_speaker(name)
+            refresh_names()
+            name_var.set(new_speaker.display_name)
+
+        btns = tk.Frame(dialog)
+        btns.pack(pady=10)
+        tk.Button(btns, text="+ Neuer globaler Sprecher", command=add_new_global).pack(side="left", padx=4)
+
+        def confirm():
+            name = name_var.get()
+            for speaker in self.speaker_library.get_all_speakers():
+                if speaker.display_name == name:
+                    result["speaker"] = speaker
+                    break
+            dialog.destroy()
+
+        tk.Button(btns, text="Abbrechen", command=dialog.destroy).pack(side="left", padx=4)
+        tk.Button(btns, text="Hinzufügen", command=confirm).pack(side="left", padx=4)
+
+        self.wait_window(dialog)
+        return result["speaker"]
 
     def _delete_speaker(self):
         sel = self.speaker_tree.selection()

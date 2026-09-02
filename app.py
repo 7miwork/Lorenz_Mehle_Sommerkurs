@@ -228,9 +228,9 @@ class RecordStudioApp(tk.Tk):
         self.views["profiles"] = self._build_profile_view()
         self.views["character_editor"] = CharacterEditor(self.content_frame, self.character_library)
         self.views["scene_editor"] = SceneEditor(self.content_frame, self.scene_library)
-        self.views["project_editor"] = ProjectEditor(self.content_frame, self.project_manager)
+        self.views["project_editor"] = ProjectEditor(self.content_frame, self.project_manager, self.speaker_library)
         self.views["speaker_organizer"] = SpeakerOrganizer(self.content_frame, self.project_manager)
-        self.views["speaker_database"] = SpeakerDatabaseEditor(self.content_frame, self.speaker_library)
+        self.views["speaker_database"] = SpeakerDatabaseEditor(self.content_frame, self.speaker_library, self.audio_manager)
         self.views["timeline_editor"] = TimelineEditor(self.content_frame, self.timeline_library, self.speaker_library)
 
         self._disable_navigation()

@@ -47,6 +47,7 @@ class SpeakerManager:
         order: int = 0,
         color: str = "",
         notes: str = "",
+        speaker_id: Optional[str] = None,
     ) -> Speaker:
         """Erstellt einen neuen Sprecher und seinen Ordner.
 
@@ -56,12 +57,16 @@ class SpeakerManager:
             order: Reihenfolge innerhalb der Szene
             color: Optionale Farbe
             notes: Optionale Notizen
+            speaker_id: Vorgegebene ID (optional) - wird genutzt, wenn ein
+                        globaler Sprecher in das Projekt aufgenommen wird,
+                        damit Projekt und Datenbank dieselbe ID teilen
 
         Returns:
             Der neu erstellte Speaker
         """
         timestamp = int(time.time())
-        speaker_id = f"{display_name.lower().replace(' ', '_')}_{timestamp}"
+        if speaker_id is None:
+            speaker_id = f"{display_name.lower().replace(' ', '_')}_{timestamp}"
 
         speaker = Speaker(
             speaker_id=speaker_id,
