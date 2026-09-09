@@ -1,0 +1,23 @@
+{
+  "project_id": "proj_1788967806",
+  "name": "PreviewTest",
+  "folder_name": "PreviewTest",
+  "created_at": "2026-09-09T23:30:06.577076",
+  "modified_at": "Wed Sep  9 23:30:06 2026",
+  "scene_ids": [],
+  "speaker_ids": [],
+  "bgm_files": [],
+  "sfx_files": [],
+  "speakers": [
+    {
+      "speaker_id": "speaker_test_sprecher_1788967806",
+      "character_id": "",
+      "display_name": "Test Sprecher",
+      "order": 0,
+      "color": "",
+      "notes": "",
+      "created_at": "2026-09-09T23:30:06.590838",
+      "recordings": []
+    }
+  ]
+}

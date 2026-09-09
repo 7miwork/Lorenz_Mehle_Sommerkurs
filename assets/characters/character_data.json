@@ -15,7 +15,37 @@
             "views": {},
             "poses": {},
             "created_at": "2026-07-22T22:52:02"
+        },
+        {
+            "character_id": "test_held_1788967213",
+            "name": "Test Held",
+            "description": "",
+            "views": {
+                "front": "assets/_test_char.png"
+            },
+            "poses": {},
+            "created_at": "2026-09-09T23:20:13.456153"
+        },
+        {
+            "character_id": "test_held_1788967348",
+            "name": "Test Held",
+            "description": "",
+            "views": {
+                "front": "assets/_test_char.png"
+            },
+            "poses": {},
+            "created_at": "2026-09-09T23:22:28.424803"
+        },
+        {
+            "character_id": "test_held_1788967806",
+            "name": "Test Held",
+            "description": "",
+            "views": {
+                "front": "assets/_test_char.png"
+            },
+            "poses": {},
+            "created_at": "2026-09-09T23:30:06.566602"
         }
     ],
-    "last_updated": "2026-09-02T23:52:30.000000"
+    "last_updated": "2026-09-09T23:30:06.566630"
 }

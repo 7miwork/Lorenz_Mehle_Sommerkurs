@@ -228,7 +228,7 @@ class RecordStudioApp(tk.Tk):
         self.views["profiles"] = self._build_profile_view()
         self.views["character_editor"] = CharacterEditor(self.content_frame, self.character_library)
         self.views["scene_editor"] = SceneEditor(self.content_frame, self.scene_library)
-        self.views["project_editor"] = ProjectEditor(self.content_frame, self.project_manager, self.speaker_library)
+        self.views["project_editor"] = ProjectEditor(self.content_frame, self.project_manager, self.speaker_library, preview_callback=self._preview_export)
         self.views["speaker_organizer"] = SpeakerOrganizer(self.content_frame, self.project_manager)
         self.views["speaker_database"] = SpeakerDatabaseEditor(self.content_frame, self.speaker_library, self.audio_manager)
         self.views["timeline_editor"] = TimelineEditor(self.content_frame, self.timeline_library, self.speaker_library)
@@ -446,6 +446,52 @@ class RecordStudioApp(tk.Tk):
     def _open_timeline_editor(self):
         """Wechselt zur globalen Timeline im Hauptfenster."""
         self._show_view("timeline_editor")
+
+    def _preview_export(self):
+        """Baute die Export-Sequenz und öffnet den Vorschau-Player.
+
+        Diese Funktion verbindet die Projekt-, Timeline-, Szenen-,
+        Charakter- und Sprecher-Daten mit dem PreviewPlayer. Bei
+        unvollständigen Daten wird verständlich informiert, statt
+        abzustürzen.
+        """
+        from tkinter import messagebox
+        from core.export_sequence import build_export_sequence
+        from ui.preview_player import PreviewPlayer
+
+        # Es muss ein Projekt geöffnet sein, damit es etwas anzuzeigen gibt
+        if not self.project_manager.current_project:
+            messagebox.showwarning(
+                "Kein Projekt",
+                "Bitte zuerst ein Projekt öffnen, um die Vorschau zu sehen."
+            )
+            return
+
+        project = self.project_manager.current_project
+
+        # Die Sequenz-Schritte aus dem Projekt bauen
+        steps = build_export_sequence(
+            project,
+            scene_library=self.scene_library,
+            speaker_library=self.speaker_library,
+            character_library=self.character_library,
+            timeline_library=self.timeline_library,
+            file_manager=self.file_manager,
+            speaker_manager=self.project_manager.speaker_manager,
+            audio_manager=self.audio_manager,
+        )
+
+        # Leere Timeline freundlich mitteilen statt leeres Fenster zu öffnen
+        if not steps:
+            messagebox.showwarning(
+                "Keine Timeline-Einträge",
+                "Für dieses Projekt gibt es noch keine Timeline-Einträge.\n"
+                "Lege zuerst über 'Timeline verwalten' einen Eintrag an."
+            )
+            return
+
+        # Vorschau-Fenster öffnen und die Sequenz übergeben
+        PreviewPlayer(self, steps, audio_manager=self.audio_manager)
 
     def _add_menubar(self):
         """Ergänzt eine einfache Menüleiste mit einem Sprecher-Menü."""

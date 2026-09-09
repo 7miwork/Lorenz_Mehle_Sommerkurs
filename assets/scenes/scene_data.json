@@ -6,7 +6,28 @@
             "background_path": "",
             "description": "",
             "created_at": "2026-07-29T10:03:02"
+        },
+        {
+            "scene_id": "test_szene_1_1788967213",
+            "name": "Test Szene 1",
+            "background_path": "assets/_test_scene.png",
+            "description": "",
+            "created_at": "2026-09-09T23:20:13.451188"
+        },
+        {
+            "scene_id": "test_szene_1_1788967348",
+            "name": "Test Szene 1",
+            "background_path": "assets/_test_scene.png",
+            "description": "",
+            "created_at": "2026-09-09T23:22:28.420718"
+        },
+        {
+            "scene_id": "test_szene_1_1788967806",
+            "name": "Test Szene 1",
+            "background_path": "assets/_test_scene.png",
+            "description": "",
+            "created_at": "2026-09-09T23:30:06.562840"
         }
     ],
-    "last_updated": "2026-09-02T23:52:30.000000"
+    "last_updated": "2026-09-09T23:30:06.562872"
 }

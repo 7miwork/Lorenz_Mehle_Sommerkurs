@@ -12,13 +12,15 @@ from typing import Optional
 
 
 class ProjectEditor(tk.Frame):
-    def __init__(self, parent, project_manager, speaker_library=None):
+    def __init__(self, parent, project_manager, speaker_library=None, preview_callback=None):
         super().__init__(parent)
         self.parent = parent
         self.pm = project_manager
         # Globale Sprecher-Datenbank: Projekte nutzen vorhandene Sprecher,
         # statt eigene, unabhängige Kopien anzulegen
         self.speaker_library = speaker_library
+        # Callback fuer die Vorschau-Wiedergabe (wird in der App gesetzt)
+        self.preview_callback = preview_callback
         self.selected_project: Optional[str] = None
         self.selected_speaker_id: Optional[str] = None
 
@@ -38,6 +40,7 @@ class ProjectEditor(tk.Frame):
         tk.Button(left, text="Neues Projekt", command=self._new_project).pack(fill="x", pady=5)
         tk.Button(left, text="Projekt öffnen", command=self._open_project).pack(fill="x", pady=5)
         tk.Button(left, text="Projekt speichern", command=self._save_project).pack(fill="x", pady=5)
+        tk.Button(left, text="Vorschau abspielen", command=self._preview).pack(fill="x", pady=5)
 
         # Middle: Speakers
         mid = tk.Frame(self)
@@ -128,6 +131,14 @@ class ProjectEditor(tk.Frame):
             return
         self.pm.save_project()
         messagebox.showinfo("Gespeichert", "Projekt gespeichert.")
+
+    def _preview(self):
+        """Ruft den App-Callback für die Vorschau-Wiedergabe auf."""
+        if not self.pm.current_project:
+            messagebox.showwarning("Hinweis", "Bitte zuerst ein Projekt öffnen.")
+            return
+        if self.preview_callback:
+            self.preview_callback()
 
     # --- Speaker UI ---
     def _refresh_speakers(self):

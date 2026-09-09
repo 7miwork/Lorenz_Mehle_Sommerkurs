@@ -242,11 +242,27 @@ class AudioManager:
             return False
 
         try:
+            # Eine evtl. noch laufende Wiedergabe zuerst stoppen,
+            # damit sich zwei Audios nicht überlagern.
+            self.stop()
             threading.Thread(target=self._play_loop, args=(file_path,), daemon=True).start()
             return True
         except Exception as e:
             print(f"Fehler bei der Wiedergabe: {e}")
             return False
+
+    def stop(self) -> None:
+        """Hält eine laufende Wiedergabe an.
+
+        Diese kleine Funktion braucht der Vorschau-Player: Beim Blättern
+        (Vor/Zurück) oder Schließen soll das alte Audio sofort aufhören.
+        Ein Fehler darf hier niemals die App abstürzen lassen.
+        """
+        try:
+            # sounddevice beendet damit die aktuelle Ausgabe
+            sd.stop()
+        except Exception as e:
+            print(f"Fehler beim Stoppen: {e}")
 
     def _play_loop(self, file_path: str):
         """Wiedergabe-Schleife im Hintergrund-Thread."""
