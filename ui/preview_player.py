@@ -9,12 +9,18 @@ vorhanden, springt die Vorschau nach einer festen Anzeigezeit weiter.
 Es wird bewusst KEINE Videodatei erzeugt - das geschieht erst in
 einer spaeteren Stunde (export). Hier geht es nur um die Vorschau in
 der Anwendung.
+
+Wichtig fuer die Technik: Tkinter darf nur aus dem GUI-Thread
+angefasst werden. Der Ton laeuft deshalb in einem Hintergrund-Thread,
+das Weiterschalten macht ein Timer (after) im GUI-Thread.
 """
 
 from typing import Optional
 
 import os
+import threading
 import tkinter as tk
+from tkinter import ttk
 from PIL import Image, ImageTk
 
 # Innen-Abmessungen des Bildbereichs (Breite x Hoehe in Pixeln)
@@ -25,6 +31,10 @@ CANVAS_HEIGHT = 450
 # Verhindert, dass ein Schritt mit leerem/fehlendem Audio zu schnell
 # weiter springt.
 MIN_DURATION_MS = 800
+
+# Kleiner Zuschlag auf die gemessene Audio-Dauer (Millisekunden).
+# So ist der Ton sicher fertig, bevor das Bild wechselt.
+AUDIO_MARGIN_MS = 250
 
 
 class PreviewPlayer(tk.Toplevel):
@@ -47,6 +57,9 @@ class PreviewPlayer(tk.Toplevel):
         self._index = 0
         self._playing = False
         self._paused = False
+        # True, wenn die Sequenz komplett durchgelaufen ist. Dann startet
+        # "Abspielen" wieder beim ersten Schritt.
+        self._finished = False
         # Speichert das geplante automatische Weiterschalten (after-ID)
         self._advance_after: Optional[str] = None
         # Behaelt das aktuelle Bild, damit es nicht vom Garbage-Collector
@@ -58,14 +71,21 @@ class PreviewPlayer(tk.Toplevel):
         self.transient(parent)
 
         self._build_ui()
+        # Ueber das Fenster-X soll dieselbe Aufraeum-Logik laufen
+        # wie ueber den Schliessen-Button (Ton stoppen!).
+        self.protocol("WM_DELETE_WINDOW", self._on_close)
         # Zeigt direkt den ersten Schritt als Standbild an
         self._show_index(0)
 
     def _build_ui(self):
         """Erstellt alle sichtbaren Elemente des PreviewPlayer."""
-        # Fortschritt ("Szene 2 von 5")
+        # Fortschritt ("Szene 2 von 5") mit Balken darunter
         self.progress_label = tk.Label(self, text="Szene 0 von 0", font=(None, 12, "bold"))
         self.progress_label.pack(pady=(10, 2))
+
+        self.progress_var = tk.DoubleVar(value=0.0)
+        self.progress_bar = ttk.Progressbar(self, variable=self.progress_var, maximum=100.0)
+        self.progress_bar.pack(fill="x", padx=12)
 
         # Szenenname und Text des Timeline-Eintrags
         self.title_label = tk.Label(self, text="", font=(None, 14))
@@ -90,46 +110,61 @@ class PreviewPlayer(tk.Toplevel):
         tk.Button(btn_frame, text="Schliessen", command=self._on_close).grid(row=0, column=3, padx=4)
 
     def _on_close(self):
-        """Hält die Wiedergabe an und schließt das Vorschau-Fenster.
+        """Haelt die Wiedergabe an und schliesst das Vorschau-Fenster.
 
-        Verhindert, dass das Audio nach dem Schließen weiterläuft.
+        Verhindert, dass das Audio nach dem Schliessen weiterlaeuft.
         """
         # Geplantes Weiterschalten abbrechen
         self._cancel_advance()
         self._playing = False
-        # Laufendes Audio stoppen (falls der AudioManager das kann)
-        stop = getattr(self.audio_manager, "stop", None)
-        if callable(stop):
-            try:
-                stop()
-            except Exception:
-                pass
+        self._paused = False
+        # Laufendes Audio stoppen
+        self._stop_playback()
         self.destroy()
 
     def _toggle_play(self):
-        """Startet, pausiert oder setzt die Wiedergabe fort."""
+        """Schaltet die Wiedergabe: Starten, Pause oder Weiter.
+
+        Die Taste hat drei Zustaende (Beschriftung zeigt den naechsten
+        Schritt an):
+            - "Abspielen" -> Wiedergabe startet (wird zu "Pause")
+            - "Pause"     -> Bild bleibt stehen, Ton stoppt ("Weiter")
+            - "Weiter"    -> Schritt laeuft weiter ("Pause")
+
+        Hinweis: Beim Weiter wird der Ton des aktuellen Schritts von
+        vorne abgespielt. sounddevice kann eine Ausgabe nicht anhalten
+        und spaeter an derselben Stelle fortsetzen.
+        """
         if self._playing and not self._paused:
-            # Laufende Wiedergabe pausieren
+            # Pause: Ton sofort stoppen und Timer abbrechen, das Bild
+            # bleibt stehen.
             self._paused = True
+            self._stop_playback()
             self._cancel_advance()
             self.play_btn.config(text="Weiter")
-        elif self._playing and self._paused:
-            # Pausierte Wiedergabe fortsetzen
+            return
+
+        if self._playing and self._paused:
+            # Weiter: aktuellen Schritt fortsetzen
             self._paused = False
             self.play_btn.config(text="Pause")
             self._schedule_advance()
-        else:
-            # Noch nicht gestartet -> erste Wiedergabe starten
-            self._playing = True
-            self._paused = False
-            self.play_btn.config(text="Pause")
-            self._schedule_advance()
+            return
+
+        # Start. Nach dem Ende der Sequenz beginnt sie wieder von vorne.
+        if self._finished:
+            self._show_index(0)
+        self._playing = True
+        self._paused = False
+        self._finished = False
+        self.play_btn.config(text="Pause")
+        self._schedule_advance()
 
     def _show_index(self, index: int):
         """Zeigt den Schritt mit dem gegebenen Index an.
 
-        Startet bei vorhandenem Audio auch dessen Wiedergabe und
-        plant das automatische Weiter-Schalten.
+        Startet bei laufender Wiedergabe auch dessen Audio (im
+        Hintergrund-Thread) und plant das automatische Weiter-Schalten.
 
         Args:
             index: Index des anzuzeigenden Schritts (wird geklemmt)
@@ -146,43 +181,70 @@ class PreviewPlayer(tk.Toplevel):
         self.title_label.config(text=step.scene_name)
         self.text_label.config(text=step.text if step.text else "")
 
+        # Fortschrittsbalken auf den aktuellen Schritt setzen
+        self._update_progress()
+
         # Bild zeichnen
         self._render_frame(step)
 
-        # Audio abspielen, falls vorhanden und abspielbar
-        if step.audio_path and self.audio_manager is not None:
-            if os.path.exists(step.audio_path):
-                self.audio_manager.play(step.audio_path)
-
         # Wiedergabe-Zustand zuruecksetzen, falls wir manuell gesprungen sind
+        self._finished = False
         self._cancel_advance()
         if self._playing and not self._paused:
             self._schedule_advance()
 
     def _next_step(self):
-        """Springt manuell zum naechsten Schritt."""
+        """Blaettert einen Schritt vor (haelt den Ton an)."""
         if not self.steps:
             return
-        self._cancel_advance()
+        # Ton sofort stoppen; den Timer bricht _show_index ab.
+        self._stop_playback()
         self._show_index(self._index + 1)
 
     def _prev_step(self):
-        """Springt manuell zum vorherigen Schritt."""
+        """Blaettert einen Schritt zurueck (haelt den Ton an)."""
         if not self.steps:
             return
-        self._cancel_advance()
+        # Ton sofort stoppen; den Timer bricht _show_index ab.
+        self._stop_playback()
         self._show_index(self._index - 1)
 
     def _schedule_advance(self):
-        """Plant das automatische Weiter-Schalten fuer den aktuellen Schritt."""
+        """Startet den Ton und plant das automatische Weiter-Schalten.
+
+        Der Ton eines Schritts laeuft in einem Hintergrund-Thread, damit
+        die Buttons waehrend des Sprechens klickbar bleiben. Das
+        Weiterschalten macht ein Timer im GUI-Thread (Tkinter darf nur
+        dort benutzt werden) - und zwar nach der Dauer des Schritts,
+        also genau dann, wenn der Ton fertig ist.
+        """
         if not self.steps or self._paused or not self._playing:
             return
 
         step = self.steps[self._index]
-        # Dauer in Millisekunden umrechnen, mit Sicherheits-Mindestwert
-        duration_ms = max(int(step.duration * 1000), MIN_DURATION_MS)
+        has_audio = bool(
+            step.audio_path and self.audio_manager is not None
+            and os.path.exists(step.audio_path)
+        )
+
+        if has_audio:
+            # Ton im Hintergrund abspielen (blockierend, aber ohne GUI)
+            worker = threading.Thread(
+                target=self._play_step_thread,
+                args=(step.audio_path,),
+                daemon=True,
+            )
+            worker.start()
+
+        # Weiter-Schalten: Dauer des Tons (mit kleinem Zuschlag), sonst
+        # die Anzeigedauer des Schritts. Nie kuerzer als MIN_DURATION_MS.
+        duration_ms = int(step.duration * 1000)
+        if has_audio:
+            duration_ms += AUDIO_MARGIN_MS
+        duration_ms = max(duration_ms, MIN_DURATION_MS)
         self._advance_after = self.after(duration_ms, self._on_step_finished)
-# ---------- BILD ----------
+
+    # ---------- BILD ----------
 
     def _render_frame(self, step):
         """Rendert das grosse Bild fuer einen Schritt und zeigt es im Canvas.
@@ -241,6 +303,42 @@ class PreviewPlayer(tk.Toplevel):
         new_h = max(1, int(original_h * ratio))
         return image.resize((new_w, new_h), Image.Resampling.LANCZOS)
 
+    def _update_progress(self):
+        """Aktualisiert den Fortschrittsbalken zum aktuellen Schritt.
+
+        Kleine Hilfsfunktion: Der Balken zeigt, wie weit die Vorschau
+        schon ist. Beispiel: Schritt 1 von 4 -> 25 %.
+        """
+        total = len(self.steps)
+        if total <= 0:
+            self.progress_var.set(0.0)
+            return
+        percent = ((self._index + 1) / total) * 100.0
+        self.progress_var.set(percent)
+
+    def _play_step_thread(self, audio_path):
+        """Spielt das Audio EINES Schritts im Hintergrund ab.
+
+        Laeuft NICHT im GUI-Thread, damit die Buttons waehrend des Tons
+        klickbar bleiben. Diese Funktion fasst deshalb Tkinter nicht an -
+        sie spielt nur den Ton und ist danach fertig. Das Weiterschalten
+        uebernimmt der Timer aus _schedule_advance().
+
+        Args:
+            audio_path: Pfad zur Audiodatei dieses Schritts
+        """
+        try:
+            play = getattr(self.audio_manager, "play_blocking", None)
+            if callable(play):
+                play(audio_path)
+            else:
+                # Fallback: play() spielt nicht blockierend, der Timer
+                # schaltet trotzdem nach der Dauer weiter.
+                self.audio_manager.play(audio_path)
+        except Exception:
+            # Ein kaputter Ton darf die Vorschau nicht abbrechen
+            pass
+
     def _cancel_advance(self):
         """Bricht ein geplantes automatisches Weiter-Schalten ab."""
         if self._advance_after is not None:
@@ -258,20 +356,23 @@ class PreviewPlayer(tk.Toplevel):
             return
         nxt = self._index + 1
         if nxt >= len(self.steps):
-            # Ende erreicht -> Wiedergabe vollstaendig anhalten
+            # Ende erreicht -> Wiedergabe anhalten und wieder "Abspielen" zeigen
             self._playing = False
+            self._paused = False
+            self._finished = True
             self.play_btn.config(text="Abspielen")
             return
         self._show_index(nxt)
 
     def _stop_playback(self):
-        """Hält das laufende Audio an (falls der AudioManager das kann).
+        """Haelt das laufende Audio an (falls der AudioManager das kann).
 
-        Kleine Hilfsfunktion, damit beim Blättern (Vor/Zurück) das alte
-        Audio nicht weiterläuft, während schon das neue Bild zu sehen ist.
+        Kleine Hilfsfunktion, damit beim Blaettern (Vor/Zurueck), beim
+        Pausieren und beim Schliessen kein alter Ton weiterlaeuft.
         """
-        # Der AudioManager kennt bisher nur play() - stop() gibt es
-        # erst nach der nächsten kleinen Erweiterung (siehe AudioManager).
+        # stop() gibt es im AudioManager. Der getattr-Check ist ein
+        # Sicherheitsnetz: So stuerzt die Vorschau auch dann nicht ab,
+        # wenn der AudioManager die Methode einmal nicht haben sollte.
         stop = getattr(self.audio_manager, "stop", None)
         if callable(stop):
             try:

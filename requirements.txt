@@ -8,3 +8,9 @@ Pillow>=10.0.0
 sounddevice>=0.4.7
 numpy>=1.25.0
 imageio-ffmpeg>=0.4.8
+
+# soundfile ist OPTIONAL. Aufnahmen werden als OGG gespeichert.
+# Ohne soundfile dekodiert der AudioManager OGG-Dateien mit ffmpeg
+# (imageio-ffmpeg oder ein ffmpeg im System). Mit soundfile geht das
+# Lesen etwas schneller.
+# soundfile>=0.12.1

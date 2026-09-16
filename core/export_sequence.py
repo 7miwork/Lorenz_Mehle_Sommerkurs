@@ -67,10 +67,32 @@ def _resolve_scene(entry, scene_library):
     """
     if scene_library is None or not entry.scene_id:
         return (entry.scene_id, "Szene", "")
+
     scene = scene_library.get_scene(entry.scene_id)
+    if scene is None:
+        # Im Timeline-Editor wird die Szene als Text eingegeben. Wer dort
+        # den Namen statt der ID schreibt, soll die Szene trotzdem sehen.
+        scene = _find_scene_by_name(entry.scene_id, scene_library)
     if scene is None:
         return (entry.scene_id, "Szene", "")
     return (scene.scene_id, scene.name, scene.background_path)
+
+
+def _find_scene_by_name(text, scene_library):
+    """Sucht eine Szene ueber ihren Namen (ohne Gross-/Kleinschreibung).
+
+    Args:
+        text: Eingegebener Text (soll der Szenenname sein)
+        scene_library: Bibliothek der Szenen
+
+    Returns:
+        Das Scene-Objekt oder None, wenn kein Name passt
+    """
+    gesucht = (text or "").strip().lower()
+    for scene in scene_library.get_all_scenes():
+        if scene.name.strip().lower() == gesucht:
+            return scene
+    return None
 
 
 def _resolve_character_images(p_speaker, g_speaker, character_library) -> List[str]:
@@ -90,8 +112,7 @@ def _resolve_character_images(p_speaker, g_speaker, character_library) -> List[s
         if character is None:
             continue
         images = [path for path in (character.views or {}).values() if path]
-        if not images and getattr(character, "image_path", ""):
-            images = [character.image_path]
+        images += [path for path in (character.poses or {}).values() if path]
         return images
     return []
 
@@ -100,51 +121,63 @@ def _resolve_audio(entry, p_speaker, g_speaker, project,
                    file_manager, audio_manager):
     """Ermittelt die passende Audiodatei und Dauer fuer einen Schritt.
 
-    Es wird eine Aufnahme gesucht, deren Anzeigename zum Timeline-Text
-    passt (z. B. Wort "Hallo"). Es werden sowohl die Aufnahmen des
-    Projektspeakers als auch die des globalen Sprechers durchsucht.
+    Gesucht wird eine Aufnahme, deren Anzeigename zum Timeline-Text
+    passt (Text "Hallo" -> Aufnahme "Hallo"). Zuerst wird genau
+    verglichen, danach ohne Beachtung von Gross-/Kleinschreibung.
+    Passt gar kein Name, wird die erste Aufnahme des Sprechers genommen
+    (bestmoegliche Naeherung fuer die Vorschau).
 
     Returns:
         Tupel (audio_path, duration). audio_path ist None, wenn nichts
         abspielbares gefunden wurde.
     """
+    # Aufnahmen von Projektspeaker UND globalem Sprecher sammeln.
+    # Dazu wird gemerkt, woher die Aufnahme kommt - davon haengt der
+    # Pfad ab:
+    #   Projektspeaker   -> relativ zum Projektordner
+    #   globaler Sprecher -> relativ zum Arbeitsverzeichnis (assets/...)
     candidates = []
-    for speaker in (p_speaker, g_speaker):
-        if speaker is not None:
-            candidates.extend(speaker.recordings)
+    if p_speaker is not None:
+        candidates.extend((rec, True) for rec in p_speaker.recordings)
+    if g_speaker is not None:
+        candidates.extend((rec, False) for rec in g_speaker.recordings)
 
-    recording = None
-    for rec in candidates:
-        if rec.display_name == entry.text:
-            recording = rec
-            break
-    if recording is None and candidates:
-        recording = candidates[0]
-    if recording is None:
+    if not candidates:
         return (None, DEFAULT_DURATION)
 
-    # Pfadje nach Speicherort: Projektspeaker -> Projektordner,
-    # globaler Sprecher -> Arbeitsverzeichnis.
-    is_project = False
-    if p_speaker is not None:
-        for other in p_speaker.recordings:
-            if other is recording or other.recording_id == recording.recording_id:
-                is_project = True
+    text = (entry.text or "").strip()
+    match = None
+    for rec, is_project in candidates:
+        if rec.display_name == text:
+            match = (rec, is_project)
+            break
+    if match is None:
+        for rec, is_project in candidates:
+            if rec.display_name.lower() == text.lower():
+                match = (rec, is_project)
                 break
+    if match is None:
+        # Kein Name passt -> erste Aufnahme als Naeherung
+        match = candidates[0]
 
+    recording, is_project = match
+    rel_path = os.path.normpath(recording.filepath)
     if is_project and file_manager is not None and project is not None:
-        abs_path = file_manager.to_absolute(project.folder_name, recording.filepath)
+        abs_path = file_manager.to_absolute(project.folder_name, rel_path)
     else:
-        abs_path = os.path.abspath(recording.filepath)
+        abs_path = os.path.abspath(rel_path)
 
-    if abs_path and os.path.exists(abs_path):
-        if audio_manager is not None:
-            duration = audio_manager.get_duration(abs_path)
-        if not duration or duration <= 0:
-            duration = DEFAULT_DURATION
-        return (abs_path, duration)
+    # Datei fehlt -> ohne Ton weiter (die Vorschau laeuft trotzdem)
+    if not os.path.exists(abs_path):
+        return (None, DEFAULT_DURATION)
 
-    return (None, DEFAULT_DURATION)
+    # Dauer aus der Datei messen (WAV und OGG)
+    duration = DEFAULT_DURATION
+    if audio_manager is not None:
+        gemessen = audio_manager.get_duration(abs_path)
+        if gemessen and gemessen > 0:
+            duration = gemessen
+    return (abs_path, duration)
 
 
 def build_export_sequence(

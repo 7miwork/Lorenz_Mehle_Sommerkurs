@@ -2,7 +2,9 @@
 # Verwaltet Audioaufnahmen: Aufnahme, Wiedergabe, Speichern, Löschen.
 # Verwendet sounddevice für die Aufnahme und wave für das Speichern.
 
+import io
 import os
+import shutil
 import threading
 import time
 import wave
@@ -18,12 +20,22 @@ try:
 except Exception:
     iioff = None
 
+# soundfile kann OGG/OPUS direkt lesen und dauert nicht lange.
+# Es ist OPTIONAL: Ist das Paket nicht installiert, dekodiert der
+# AudioManager komprimierte Dateien mit ffmpeg (siehe _load_audio).
+# So funktioniert die Wiedergabe auch ohne Zusatzpaket.
+try:
+    import soundfile as sf
+except Exception:
+    sf = None
+
 
 class AudioManager:
     """Verwaltet Audioaufnahmen und Wiedergabe.
 
     Bietet Funktionen zum Starten/Stoppen/Pausieren von Aufnahmen,
-    zum Abspielen von WAV-Dateien und zum Ermitteln der Dauer.
+    zum Abspielen von Audiodateien (WAV und OGG) und zum Ermitteln
+    der Dauer.
 
     Die Aufnahme läuft in einem separaten Thread, damit die GUI
     während der Aufnahme nicht blockiert wird.
@@ -229,11 +241,141 @@ class AudioManager:
 
     # ---------- WIEDERGABE ----------
 
-    def play(self, file_path: str) -> bool:
-        """Spielt eine WAV-Datei ab.
+    def _load_audio(self, file_path: str):
+        """Laedt eine Audiodatei als (Daten, Samplerate).
+
+        Das ist die EINE Stelle, an der Audiodateien gelesen werden -
+        sowohl play() als auch play_blocking() nutzen sie. Dadurch gibt
+        es den Lade-Code nur einmal.
+
+        Reihenfolge:
+            1. WAV  -> Standardbibliothek "wave" (immer verfuegbar)
+            2. OGG/OPUS -> soundfile, falls installiert
+            3. OGG/OPUS -> ffmpeg, falls soundfile fehlt
+
+        Args:
+            file_path: Pfad zur Audiodatei
+
+        Returns:
+            Tupel (data, samplerate). data ist ein numpy-int16-Array
+            oder None, wenn die Datei nicht gelesen werden konnte.
+        """
+        if not file_path or not os.path.exists(file_path):
+            print(f"Fehler beim Laden: Datei nicht gefunden ({file_path})")
+            return (None, self.SAMPLE_RATE)
+
+        if file_path.lower().endswith(".wav"):
+            return self._load_wav(file_path)
+
+        # Komprimierte Formate (OGG/OPUS): erst soundfile probieren
+        if sf is not None:
+            try:
+                data, samplerate = sf.read(file_path, dtype="int16")
+                return (data, samplerate)
+            except Exception as e:
+                print(f"soundfile konnte die Datei nicht lesen: {e}")
+
+        # Ohne soundfile: ffmpeg dekodiert die Datei nach WAV (im RAM)
+        raw = self._decode_with_ffmpeg(file_path)
+        if raw is None:
+            print("Wiedergabe nicht moeglich: bitte 'soundfile' oder "
+                  "ffmpeg installieren.")
+            return (None, self.SAMPLE_RATE)
+        return self._load_wav_bytes(raw)
+
+    def _load_wav(self, file_path: str):
+        """Liest eine WAV-Datei mit der Standardbibliothek.
 
         Args:
             file_path: Pfad zur WAV-Datei
+
+        Returns:
+            Tupel (data, samplerate) oder (None, Standardrate) bei Fehler
+        """
+        try:
+            with wave.open(file_path, "rb") as wf:
+                raw = wf.readframes(wf.getnframes())
+                data = np.frombuffer(raw, dtype=np.int16)
+                return (self._to_channels(data, wf.getnchannels()), wf.getframerate())
+        except Exception as e:
+            print(f"Fehler beim Laden: {e}")
+            return (None, self.SAMPLE_RATE)
+
+    def _load_wav_bytes(self, raw: bytes):
+        """Liest WAV-Daten aus dem Arbeitsspeicher (z. B. von ffmpeg).
+
+        Args:
+            raw: Komplette WAV-Datei als Bytes
+
+        Returns:
+            Tupel (data, samplerate) oder (None, Standardrate) bei Fehler
+        """
+        try:
+            with wave.open(io.BytesIO(raw), "rb") as wf:
+                frames = wf.readframes(wf.getnframes())
+                data = np.frombuffer(frames, dtype=np.int16)
+                return (self._to_channels(data, wf.getnchannels()), wf.getframerate())
+        except Exception as e:
+            print(f"Fehler beim Laden: {e}")
+            return (None, self.SAMPLE_RATE)
+
+    @staticmethod
+    def _to_channels(data: np.ndarray, channels: int):
+        """Bringt PCM-Daten in die Form, die sounddevice erwartet.
+
+        Stereo-Daten liegen hintereinander (L, R, L, R ...). Fuer
+        sounddevice werden daraus zwei Spalten gemacht, damit die
+        Wiedergabe nicht zu schnell klingt.
+
+        Args:
+            data: 1D-Array mit den PCM-Werten
+            channels: Anzahl der Kanaele in der Datei
+
+        Returns:
+            data unveraendert (Mono) oder als 2D-Array (Stereo)
+        """
+        if channels > 1 and data.size % channels == 0:
+            return data.reshape(-1, channels)
+        return data
+
+    def _decode_with_ffmpeg(self, file_path: str) -> Optional[bytes]:
+        """Dekodiert eine Audiodatei mit ffmpeg zu WAV-Bytes.
+
+        Wird nur gebraucht, wenn soundfile nicht installiert ist.
+        Die fertigen WAV-Daten kommen direkt in den Arbeitsspeicher
+        (Ausgabe "-"), es wird also keine temporaere Datei angelegt.
+
+        Args:
+            file_path: Pfad zur Audiodatei (z. B. OGG)
+
+        Returns:
+            WAV-Datei als Bytes oder None bei Fehler
+        """
+        ffmpeg = self._get_ffmpeg_exe()
+        if ffmpeg is None:
+            return None
+
+        args = [
+            ffmpeg, "-v", "quiet", "-i", file_path,
+            "-f", "wav", "-acodec", "pcm_s16le", "-",
+        ]
+        try:
+            result = subprocess.run(args, stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE)
+        except Exception as e:
+            print(f"Fehler bei ffmpeg: {e}")
+            return None
+
+        if result.returncode != 0 or not result.stdout:
+            print("Fehler: ffmpeg konnte die Datei nicht dekodieren.")
+            return None
+        return result.stdout
+
+    def play(self, file_path: str) -> bool:
+        """Spielt eine Audiodatei ab (WAV oder OGG).
+
+        Args:
+            file_path: Pfad zur Audiodatei
 
         Returns:
             True wenn die Wiedergabe gestartet wurde
@@ -266,33 +408,77 @@ class AudioManager:
 
     def _play_loop(self, file_path: str):
         """Wiedergabe-Schleife im Hintergrund-Thread."""
+        data, samplerate = self._load_audio(file_path)
+        if data is None:
+            return
         try:
-            with wave.open(file_path, "rb") as wf:
-                data = wf.readframes(wf.getnframes())
-                audio = np.frombuffer(data, dtype=np.int16)
-                sd.play(audio, wf.getframerate())
-                sd.wait()
+            sd.play(data, samplerate)
+            sd.wait()
         except Exception as e:
             print(f"Fehler bei der Wiedergabe: {e}")
 
     # ---------- HILFSFUNKTIONEN ----------
 
-    def get_duration(self, file_path: str) -> float:
-        """Ermittelt die Dauer einer WAV-Datei in Sekunden.
+    def play_blocking(self, file_path: str) -> bool:
+        """Spielt eine Audiodatei ab und wartet, bis sie fertig ist.
+
+        Im Gegensatz zu play() blockiert diese Methode den aufrufenden
+        Thread. Sie ist fuer Hintergrund-Threads gedacht (z. B. die
+        Vorschau-Wiedergabe), damit die naechste Szene erst nach dem
+        Ton startet - wie bei einer echten Diashow mit Vertonung.
 
         Args:
-            file_path: Pfad zur WAV-Datei
+            file_path: Pfad zur Audiodatei (WAV oder OGG)
+
+        Returns:
+            True wenn die Wiedergabe geklappt hat
+        """
+        # Datei laden (WAV/OGG) - dieselbe Stelle wie bei play(),
+        # nur dass hier direkt gewartet wird statt einen Thread zu starten.
+        data, samplerate = self._load_audio(file_path)
+        if data is None:
+            return False
+        # Abspielen und auf das Ende warten (blockierend).
+        try:
+            sd.play(data, samplerate)
+            sd.wait()
+            return True
+        except Exception as e:
+            print(f"Fehler bei der Wiedergabe: {e}")
+            return False
+
+    def get_duration(self, file_path: str) -> float:
+        """Ermittelt die Dauer einer Audiodatei in Sekunden.
+
+        WAV-Dateien werden direkt aus dem Datei-Kopf gelesen (schnell).
+        Bei OGG/OPUS wird die Datei mit _load_audio geladen und die
+        Laenge aus der Anzahl der Werte berechnet - so stimmt die
+        Anzeigedauer auch fuer komprimierte Aufnahmen.
+
+        Args:
+            file_path: Pfad zur Audiodatei
 
         Returns:
             Dauer in Sekunden (0.0 bei Fehler)
         """
-        try:
-            with wave.open(file_path, "rb") as wf:
-                frames = wf.getnframes()
-                rate = wf.getframerate()
-                return frames / rate if rate > 0 else 0.0
-        except Exception:
+        if not file_path or not os.path.exists(file_path):
             return 0.0
+
+        if file_path.lower().endswith(".wav"):
+            try:
+                with wave.open(file_path, "rb") as wf:
+                    frames = wf.getnframes()
+                    rate = wf.getframerate()
+                    return frames / rate if rate > 0 else 0.0
+            except Exception:
+                return 0.0
+
+        # Komprimierte Dateien: Laenge aus den geladenen Audiodaten
+        data, samplerate = self._load_audio(file_path)
+        if data is None or samplerate <= 0:
+            return 0.0
+        frames = data.shape[0]
+        return frames / samplerate
 
     def delete_file(self, file_path: str) -> bool:
         """Löscht eine Datei.
@@ -327,13 +513,20 @@ class AudioManager:
 
     # ---------- FORMAT KONVERTIERUNG (ffmpeg) ----------
     def _get_ffmpeg_exe(self) -> Optional[str]:
-        """Gibt den Pfad zur ffmpeg-Executable zurück, falls verfügbar."""
+        """Gibt den Pfad zur ffmpeg-Executable zurück, falls verfügbar.
+
+        Zuerst wird imageio-ffmpeg gefragt (bringt ffmpeg mit). Ist das
+        Paket nicht installiert, wird ffmpeg im System gesucht - so
+        funktioniert die Konvertierung/Dekodierung auch dann, wenn
+        ffmpeg bereits auf dem Rechner installiert ist.
+        """
         if iioff is not None:
             try:
                 return iioff.get_ffmpeg_exe()
             except Exception:
-                return None
-        return None
+                pass
+        # Fallback: ffmpeg aus dem System (PATH)
+        return shutil.which("ffmpeg")
 
     def convert_to_format(self, input_wav: str, output_path: str, fmt: Literal["ogg", "opus"]) -> bool:
         """Konvertiert eine WAV-Datei in OGG Vorbis oder OPUS mithilfe von ffmpeg.

@@ -12,6 +12,9 @@ Record Studio ist eine Tkinter-basierte App für Lehrzwecke zur Verwaltung von S
 - Projektbezogene Sprecherorganisation mit `SpeakerOrganizer`.
 - Globale Sprecher-Datenbank mit `SpeakerDatabaseEditor`.
 - Globale Timeline-Verwaltung mit `TimelineEditor`.
+- Projekt-Vorschau als Diashow: `ui/preview_player.py` zeigt Szenen,
+  Charakterbilder und Sprecher-Audio in der Reihenfolge der Timeline;
+  `core/export_sequence.py` baut die passenden Sequenz-Schritte.
 - Projekt- und Dateisystemlogik in `core/file_manager.py` und `core/project_manager.py`.
 - Persistente globale Speaker- und Timeline-Daten in `core/speaker_library.py` und `core/timeline_library.py`.
 
@@ -24,8 +27,10 @@ Record Studio ist eine Tkinter-basierte App für Lehrzwecke zur Verwaltung von S
 - Projekt erstellen, öffnen und speichern
 - Projekt-spezifische Sprecher erstellen und verwalten
 - Audioaufnahme für Projektsprecher starten, stoppen und speichern
+- Sprecher global anlegen und Wörter für sie aufnehmen (Sprecher-Aufnahme)
 - Globale Sprecher-Datenbank bearbeiten
 - Globale Timeline-Einträge erstellen, bearbeiten und löschen
+- Vorschau als Diashow abspielen (Szenen + Charakterbilder + Sprecher-Audio)
 
 ## Aktuelle Funktionen
 
@@ -38,6 +43,7 @@ Record Studio ist eine Tkinter-basierte App für Lehrzwecke zur Verwaltung von S
 - [x] Audio Recorder / Aufnahme speichern
 - [x] Globale Sprecher-Datenbank
 - [x] Globale Timeline-Verwaltung
+- [x] Vorschau (Diashow mit Bildern und Audio)
 - [ ] Video Export
 - [ ] Lippensynchronisation
 - [ ] Upload-Funktionen
@@ -64,6 +70,7 @@ Sommerkurs/
 ├── assets/
 ├── core/
 │   ├── audio_manager.py
+│   ├── export_sequence.py
 │   ├── file_manager.py
 │   ├── project_manager.py
 │   ├── speaker_library.py
@@ -76,6 +83,7 @@ Sommerkurs/
 ├── tools/
 ├── ui/
 │   ├── character_editor.py
+│   ├── preview_player.py
    ├── main_menu.py
    ├── project_editor.py
    ├── scene_editor.py
@@ -100,6 +108,10 @@ Sommerkurs/
    - `Timeline verwalten`: Globale Timeline-Einträge erstellen, bearbeiten, löschen
 4. In Projekten kannst du Sprecher anlegen, aufnehmen und speichern.
 5. In der globalen Datenbank kannst du Sprecher und Timeline-Einträge zentral verwalten.
+6. Öffne ein Projekt und klicke auf `Vorschau abspielen`, um es als Diashow
+   zu sehen: Szene für Szene mit Charakterbildern und Sprecher-Audio in
+   der Reihenfolge der Timeline. Der Player hat Abspielen/Pause, Vor,
+   Zurück und Schließen; ohne Ton schaltet er nach 4 Sekunden weiter.
 
 ## Navigation im Hauptfenster
 
@@ -120,7 +132,9 @@ Sommerkurs/
 - sounddevice
 - numpy
 - imageio-ffmpeg
+- soundfile (optional, schnelleres Laden von OGG; ohne das Paket wird ffmpeg benutzt)
 
 ## Nächster Schritt
 
-Die nächste Erweiterung wäre ein direkter Export bzw. eine Vorschau-Funktion, um erzeugte Projekte als Video oder animierte Sequenz auszugeben.
+Der echte Video-Export (`core/video_exporter.py`) baut auf `export_sequence.py`
+auf und rendert die Vorschau als mp4-Datei in den Ordner `exports/`.
